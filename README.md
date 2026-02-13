@@ -1,6 +1,10 @@
 # wttr.in for Nushell
 
+![Nushell 0.110+](https://img.shields.io/badge/nushell-0.110+-4E9A06?logo=nushell)
+
 A weather fetcher for [Nushell](https://www.nushell.sh/) that pulls data from [wttr.in](https://wttr.in).
+
+Turns wttr.in's weather data into formatted tables with color gradients, caching, and options for current conditions, forecasts, hourly breakdowns, and astronomy - all without leaving your terminal.
 
 ## What it does
 
@@ -35,6 +39,7 @@ Has a one-line mode for status bars, raw output for piping to other commands, an
 **Plain text mode:**
 
 <img width="1208" alt="Plain text output" src="https://github.com/user-attachments/assets/52400ce5-978e-4746-97a3-bde522af94a5" />
+
 
 ## Installation
 
