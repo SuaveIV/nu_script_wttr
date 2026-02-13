@@ -10,6 +10,32 @@ Caches results for 15 minutes so you don't hammer the API. Auto-detects your loc
 
 Has a one-line mode for status bars, raw output for piping to other commands, and a debug mode when things aren't working.
 
+## Screenshots
+
+**Current weather:**
+
+<img width="578" alt="Current weather with Nerd Fonts" src="https://github.com/user-attachments/assets/4f4dde64-3322-4dad-babc-59985b32e8b2" />
+
+**3-day forecast:**
+
+<img width="1053" alt="3-day forecast" src="https://github.com/user-attachments/assets/b70be374-b433-4282-bd59-8979c1c7ea4f" />
+
+**Hourly breakdown:**
+
+<img width="897" alt="Hourly forecast" src="https://github.com/user-attachments/assets/b2333da8-c9a5-4c68-bdcf-a27acd0d71df" />
+
+**Astronomy data:**
+
+<img width="375" alt="Astronomy information" src="https://github.com/user-attachments/assets/d9fda475-90b2-47c7-b44d-62594ad5bae9" />
+
+**Emoji mode:**
+
+<img width="566" alt="Emoji icons instead of Nerd Fonts" src="https://github.com/user-attachments/assets/bda9aee8-6e2d-4b73-985d-06b004c79e92" />
+
+**Plain text mode:**
+
+<img width="1208" alt="Plain text output" src="https://github.com/user-attachments/assets/52400ce5-978e-4746-97a3-bde522af94a5" />
+
 ## Installation
 
 1. Download `weather.nu`
