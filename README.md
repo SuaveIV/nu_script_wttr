@@ -40,6 +40,8 @@ Has a one-line mode for status bars, raw output for piping to other commands, an
 
 <img width="1208" alt="Plain text output" src="https://github.com/user-attachments/assets/52400ce5-978e-4746-97a3-bde522af94a5" />
 
+**Oneline mode:**
+<img width="415" height="49" alt="image" src="https://github.com/user-attachments/assets/1ab2c42d-3d54-42bc-9617-d0e394ac4b8f" />
 
 ## Installation
 
