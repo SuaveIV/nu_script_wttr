@@ -18,7 +18,7 @@
 #   > weather -3                  # 3-day forecast
 #   > weather --hourly            # Hourly forecast
 #   > weather --astro             # Astronomy data
-#   > weather --lang fr           # Weather in French
+#   > weather --lang fr           t # Weather in French
 #   > weather --debug             # Run with diagnostic info
 export def main [
     city: string = ""               # The location to fetch weather for. Leave empty to auto-detect.
@@ -35,7 +35,7 @@ export def main [
     --force (-f)                    # Bypass cache and force a network request.
     --astro (-a)                    # Show detailed astronomy data (Sunrise, Sunset, Moon phase, etc).
     --hourly (-h)                   # Show hourly forecast for today (3-hour intervals).
-    --lang: string                  # Specify language code (e.g. 'fr', 'de', 'es', 'zh').
+    --lang: string = ""             # Specify language code (e.g. 'fr', 'de', 'es', 'zh'). Empty = auto.
 ] {
     # URL encode for API (handles all special chars including Unicode)
     let encoded_city = ($city | url encode)
@@ -83,7 +83,7 @@ export def main [
                 http get "https://wttr.in" -m 5sec
                 print $"(ansi green)✓ wttr.in is reachable(ansi reset)"
                 true
-            } catch { |err|
+            } catch {|err|
                 print $"(ansi red)✗ Cannot reach wttr.in(ansi reset)"
                 print $"  Error: ($err.msg)"
                 false
@@ -222,7 +222,7 @@ export def main [
             let res = (http get $url)
             $res | save -f $cache_path
             $res
-        } catch { |err|
+        } catch {|err|
             if $debug {
                 print ""
                 print $"(ansi red_bold)━━━ REQUEST FAILED ━━━(ansi reset)"
@@ -291,7 +291,7 @@ export def main [
             print $"  Has current_condition: (not ($data | get -o current_condition | is-empty))"
             print ""
             print "Available fields in response:"
-            $data | columns | each { |col| print $"  - ($col)" }
+            $data | columns | each {|col| print $"  - ($col)" }
             print $"(ansi red_bold)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
             print ""
         }
@@ -364,7 +364,7 @@ export def main [
     }
 
     # Helper for temperature gradient formatting
-    let format_temp = { |val|
+    let format_temp = {|val|
         let v_int = ($val | into int)
         if $text {
             $"($val)($units.temp_label)"
@@ -381,7 +381,7 @@ export def main [
     }
 
     # Weather Emoji Closure (Reusable for Current and Forecast)
-    let get_weather_icon = { |code|
+    let get_weather_icon = {|code|
         if $emoji {
             match $code {
                 "113" => "☀️",
@@ -428,7 +428,7 @@ export def main [
     }
 
     # Moon Icon Closure (Reusable)
-    let get_moon_icon = { |phase, illum|
+    let get_moon_icon = {|phase, illum|
         let illum_int = ($illum | into int)
         let phase_lower = ($phase | str downcase)
         
@@ -478,7 +478,7 @@ export def main [
     }
 
     # Beaufort Scale Calculation
-    let get_beaufort = { |kmph|
+    let get_beaufort = {|kmph|
         let k = ($kmph | into int)
         match $k {
             $x if $x < 1 => 0,
@@ -498,7 +498,7 @@ export def main [
     }
 
     # Beaufort Icon Closure
-    let get_beaufort_icon = { |b_scale|
+    let get_beaufort_icon = {|b_scale|
         if $emoji or $text {
             return $"[Bft ($b_scale)]"
         }
@@ -509,7 +509,7 @@ export def main [
     }
 
     # Wind Direction Icon Closure
-    let get_wind_dir_icon = { |dir|
+    let get_wind_dir_icon = {|dir|
         if $emoji or $text {
             return $dir
         }
@@ -567,7 +567,7 @@ export def main [
         let i_rain = if $text { "" } else if $emoji { "☔ " } else { " " }
         let i_humid = if $text { "" } else if $emoji { "💧 " } else { " " }
 
-        let hourly_table = ($today.hourly | each { |hour|
+        let hourly_table = ($today.hourly | each {|hour|
             # Format time (e.g., "1200" -> "12:00")
             let t_str = ($hour.time | into string | fill -a r -w 4 -c '0')
             let time_display = $"($t_str | str substring 0..1):($t_str | str substring 2..3)"
@@ -623,7 +623,7 @@ export def main [
     # Handle Forecast Mode
     if $forecast {
         if $debug { print $"(ansi cyan)ℹ Processing 3-Day Forecast...(ansi reset)" }
-        let forecast_table = ($data.weather | each { |day|
+        let forecast_table = ($data.weather | each {|day|
             let date = ($day.date | into datetime | format date "%a, %b %d")
             let max_temp = ($day | get $units.fc_max_key)
             let min_temp = ($day | get $units.fc_min_key)
@@ -808,9 +808,9 @@ export def main [
         print $"  Country: ($country)"
         print $"  Units: (if $is_us { 'US' } else { 'Metric' }) ($units.temp_label), ($units.speed_label)"
         print $"  Weather code: ($weather_code) → ($weather_desc)"
-        print $"  Temperature: ($temp_val)($units.temp_label) (feels: ($feels_val)($units.temp_label))"
+        print $"  Temperature: ($temp_val)($units.temp_label) [feels: ($feels_val)($units.temp_label)]"
         print $"  UV Index: ($uv)"
-        print $"  Moon phase: ($moon_phase) (($moon_illum)%)"
+        print $"  Moon phase: ($moon_phase) [($moon_illum)%]"
         print $"(ansi grey)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
         print ""
     }
