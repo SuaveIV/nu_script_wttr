@@ -98,7 +98,10 @@ export def main [
                 print '  4. wttr.in service temporarily down'
                 print ""
                 print 'Try: curl wttr.in (in regular terminal to test)'
-                return
+                error make {
+                    msg: "Connectivity test failed"
+                    help: "Check your internet connection or firewall settings"
+                }
             }
         }
         
@@ -255,23 +258,16 @@ export def main [
             let error_msg = $err.msg
             
             if ($error_msg | str contains '404') or ($error_msg | str contains 'Not Found') {
-                print $"(ansi red_bold)Location not found: '($display_city)'(ansi reset)"
-                print 'wttr.in doesn''t recognize this location.'
+                error make {
+                    msg: $"Location not found: '($display_city)'"
+                    help: "Try an airport code (e.g. JFK) or a landmark with ~ (e.g. ~Eiffel Tower)"
+                }
             } else {
-                print $"(ansi red_bold)Error: Could not fetch weather for '($display_city)'(ansi reset)"
-                print $"(ansi grey)Reason: ($error_msg)(ansi reset)"
+                error make {
+                    msg: $"Could not fetch weather for '($display_city)'"
+                    help: $error_msg
+                }
             }
-            
-            print "\nTip: Check if the location exists or try:"
-            print "  - Airport code (e.g., 'LAX', 'JFK')"
-            print "  - Special location with ~ (e.g., '~Eiffel Tower')"
-            print "  - Domain with @ (e.g., '@github.com')"
-            
-            if not $debug {
-                print "\nRun with --debug flag for more diagnostic information:"
-                print $"  weather \"($city)\" --debug"
-            }
-            return
         }
     }
     
@@ -296,14 +292,10 @@ export def main [
             print ""
         }
         
-        print $"(ansi red_bold)No weather data found for '($display_city)'(ansi reset)"
-        print 'The location may not be recognized by wttr.in'
-        
-        if not $debug {
-            print "\nRun with --debug flag for more diagnostic information:"
-            print $"  weather \"($city)\" --debug"
+        error make {
+            msg: $"No weather data found for '($display_city)'"
+            help: "The location may not be recognized by wttr.in"
         }
-        return
     }
     
     if $debug {
