@@ -20,6 +20,168 @@
 #   > weather --astro             # Astronomy data
 #   > weather --lang fr           t # Weather in French
 #   > weather --debug             # Run with diagnostic info
+
+# Helper Commands
+
+def format-temp [val: any, units: record, --text]: nothing -> string {
+    let temp_int = ($val | into int)
+    if $text {
+        $"($val)($units.temp_label)"
+    } else {
+        let gradient = if $temp_int >= $units.hot_limit {
+            { s: '0xffff00', e: '0xff0000' } # Yellow -> Red
+        } else if $temp_int <= $units.cold_limit {
+            { s: '0xffffff', e: '0x00ffff' } # White -> Cyan
+        } else {
+            { s: '0x00ff00', e: '0xffff00' } # Green -> Yellow
+        }
+        $"($val)($units.temp_label)" | ansi gradient --fgstart $gradient.s --fgend $gradient.e
+    }
+}
+
+def weather-icon [code: string, --emoji, --text]: nothing -> string {
+    if $text { return "" }
+    if $emoji {
+        match $code {
+            '113' => "☀️",
+            '116' => "⛅",
+            '119' => "☁️",
+            '122' => "☁️",
+            '143' => "🌫️",
+            '248' => "🌫️",
+            '260' => "🌫️",
+            '176' | '263' | '266' | '293' | '296' | '353' => "🌦️",
+            '299' | '302' => "🌧️",
+            '305' | '308' | '356' | '359' => "🌧️",
+            '185' | '281' | '284' => "🌧️",
+            '179' | '323' | '326' | '368' => "🌨️",
+            '329' | '332' => "❄️",
+            '335' | '338' | '371' => "❄️",
+            '227' | '230' => "🌨️",
+            '182' | '317' | '320' | '362' | '365' => "🌨️",
+            '311' | '314' => "🌧️",
+            '350' | '374' | '377' => "🧊",
+            '200' | '386' => "⛈️",
+            '389' => "⛈️",
+            '392' | '395' => "⛈️",
+            _ => "🌡️"
+        }
+    } else {
+        match $code {
+            '113' => "", # nf-weather-day_sunny
+            '116' => "", # nf-weather-day_cloudy
+            '119' | '122' => "", # nf-weather-cloudy
+            '143' | '248' | '260' => "", # nf-weather-fog
+            '176' | '263' | '266' | '293' | '296' | '353' => "", # nf-weather-day_rain
+            '299' | '302' | '305' | '308' | '356' | '359' => "", # nf-weather-rain
+            '185' | '281' | '284' | '311' | '314' => "", # nf-weather-rain_mix (Freezing Rain/Drizzle)
+            '179' | '323' | '326' | '368' | '329' | '332' | '335' | '338' | '371' => "", # nf-weather-snow
+            '227' | '230' => "", # nf-weather-snow_wind (Blizzard)
+            '182' | '317' | '320' | '362' | '365' => "", # nf-weather-sleet
+            '350' | '374' | '377' => "", # nf-weather-hail
+            '200' => "", # nf-weather-lightning
+            '386' | '389' | '392' | '395' => "", # nf-weather-thunderstorm
+            _ => "" # nf-weather-thermometer (Fallback)
+        }
+    }
+}
+
+def moon-icon [phase: string, illum: any, --emoji, --text]: nothing -> string {
+    if $text { return "" }
+    let illum_int = ($illum | into int)
+    let phase_lower = ($phase | str downcase)
+    
+    let fallback = if $emoji {
+        match $illum_int {
+            $x if $x < 5 => "🌑",
+            $x if $x < 45 => "🌒",
+            $x if $x < 55 => "🌓",
+            $x if $x < 95 => "🌔",
+            _ => "🌕"
+        }
+    } else {
+        match $illum_int {
+            $x if $x < 5 => "", # nf-weather-moon_new
+            $x if $x < 45 => "", # nf-weather-moon_waxing_crescent_1
+            $x if $x < 55 => "", # nf-weather-moon_first_quarter
+            $x if $x < 95 => "", # nf-weather-moon_waxing_gibbous_1
+            _ => "" # nf-weather-moon_full
+        }
+    }
+
+    if $emoji {
+        match $phase_lower {
+            $s if ($s | str contains 'new moon') => "🌑",
+            $s if ($s | str contains 'waxing crescent') => "🌒",
+            $s if ($s | str contains 'first quarter') => "🌓",
+            $s if ($s | str contains 'waxing gibbous') => "🌔",
+            $s if ($s | str contains 'full moon') => "🌕",
+            $s if ($s | str contains 'waning gibbous') => "🌖",
+            $s if ($s | str contains 'last quarter') => "🌗",
+            $s if ($s | str contains 'waning crescent') => "🌘",
+            _ => $fallback
+        }
+    } else {
+        match $phase_lower {
+            $s if ($s | str contains 'new moon') => "",
+            $s if ($s | str contains 'waxing crescent') => "",
+            $s if ($s | str contains 'first quarter') => "",
+            $s if ($s | str contains 'waxing gibbous') => "",
+            $s if ($s | str contains 'full moon') => "",
+            $s if ($s | str contains 'waning gibbous') => "",
+            $s if ($s | str contains 'last quarter') => "",
+            $s if ($s | str contains 'waning crescent') => "",
+            _ => $fallback
+        }
+    }
+}
+
+def beaufort-scale [kmph: any]: nothing -> int {
+    let k = ($kmph | into int)
+    match $k {
+        $x if $x < 1 => 0,
+        $x if $x <= 5 => 1,
+        $x if $x <= 11 => 2,
+        $x if $x <= 19 => 3,
+        $x if $x <= 28 => 4,
+        $x if $x <= 38 => 5,
+        $x if $x <= 49 => 6,
+        $x if $x <= 61 => 7,
+        $x if $x <= 74 => 8,
+        $x if $x <= 88 => 9,
+        $x if $x <= 102 => 10,
+        $x if $x <= 117 => 11,
+        _ => 12
+    }
+}
+
+def beaufort-icon [scale: int, --emoji, --text]: nothing -> string {
+    if $emoji or $text {
+        return $"[Bft ($scale)]"
+    }
+    match $scale {
+        0 => "", 1 => "", 2 => "", 3 => "", 4 => "", 5 => "",
+        6 => "", 7 => "", 8 => "", 9 => "", 10 => "", 11 => "", _ => ""
+    }
+}
+
+def wind-dir-icon [dir: string, --emoji, --text]: nothing -> string {
+    if $emoji or $text {
+        return $dir
+    }
+    match ($dir | str upcase) {
+        'N' => "", # nf-weather-wind_north
+        'NNE' | 'NE' | 'ENE' => "", # nf-weather-wind_north_east
+        'E' => "", # nf-weather-wind_east
+        'ESE' | 'SE' | 'SSE' => "", # nf-weather-wind_south_east
+        'S' => "", # nf-weather-wind_south
+        'SSW' | 'SW' | 'WSW' => "", # nf-weather-wind_south_west
+        'W' => "", # nf-weather-wind_west
+        'WNW' | 'NW' | 'NNW' => "", # nf-weather-wind_north_west
+        _ => $dir
+    }
+}
+
 export def main [
     city: string = ""               # The location to fetch weather for. Leave empty to auto-detect.
     --raw (-r)                      # Return raw record data instead of a formatted table (useful for piping).
@@ -355,169 +517,6 @@ export def main [
         $"($area_name), ($country_val)"
     }
 
-    # Helper for temperature gradient formatting
-    let format_temp = {|val|
-        let temp_int = ($val | into int)
-        if $text {
-            $"($val)($units.temp_label)"
-        } else {
-            let gradient = if $temp_int >= $units.hot_limit {
-                { s: '0xffff00', e: '0xff0000' } # Yellow -> Red
-            } else if $temp_int <= $units.cold_limit {
-                { s: '0xffffff', e: '0x00ffff' } # White -> Cyan
-            } else {
-                { s: '0x00ff00', e: '0xffff00' } # Green -> Yellow
-            }
-            $"($val)($units.temp_label)" | ansi gradient --fgstart $gradient.s --fgend $gradient.e
-        }
-    }
-
-    # Weather Emoji Closure (Reusable for Current and Forecast)
-    let get_weather_icon = {|code|
-        if $emoji {
-            match $code {
-                '113' => "☀️",
-                '116' => "⛅",
-                '119' => "☁️",
-                '122' => "☁️",
-                '143' => "🌫️",
-                '248' => "🌫️",
-                '260' => "🌫️",
-                '176' | '263' | '266' | '293' | '296' | '353' => "🌦️",
-                '299' | '302' => "🌧️",
-                '305' | '308' | '356' | '359' => "🌧️",
-                '185' | '281' | '284' => "🌧️",
-                '179' | '323' | '326' | '368' => "🌨️",
-                '329' | '332' => "❄️",
-                '335' | '338' | '371' => "❄️",
-                '227' | '230' => "🌨️",
-                '182' | '317' | '320' | '362' | '365' => "🌨️",
-                '311' | '314' => "🌧️",
-                '350' | '374' | '377' => "🧊",
-                '200' | '386' => "⛈️",
-                '389' => "⛈️",
-                '392' | '395' => "⛈️",
-                _ => "🌡️"
-            }
-        } else {
-            match $code {
-                '113' => "", # nf-weather-day_sunny
-                '116' => "", # nf-weather-day_cloudy
-                '119' | '122' => "", # nf-weather-cloudy
-                '143' | '248' | '260' => "", # nf-weather-fog
-                '176' | '263' | '266' | '293' | '296' | '353' => "", # nf-weather-day_rain
-                '299' | '302' | '305' | '308' | '356' | '359' => "", # nf-weather-rain
-                '185' | '281' | '284' | '311' | '314' => "", # nf-weather-rain_mix (Freezing Rain/Drizzle)
-                '179' | '323' | '326' | '368' | '329' | '332' | '335' | '338' | '371' => "", # nf-weather-snow
-                '227' | '230' => "", # nf-weather-snow_wind (Blizzard)
-                '182' | '317' | '320' | '362' | '365' => "", # nf-weather-sleet
-                '350' | '374' | '377' => "", # nf-weather-hail
-                '200' => "", # nf-weather-lightning
-                '386' | '389' | '392' | '395' => "", # nf-weather-thunderstorm
-                _ => "" # nf-weather-thermometer (Fallback)
-            }
-        }
-    }
-
-    # Moon Icon Closure (Reusable)
-    let get_moon_icon = {|phase, illum|
-        let illum_int = ($illum | into int)
-        let phase_lower = ($phase | str downcase)
-        
-        let fallback = if $emoji {
-            match $illum_int {
-                $x if $x < 5 => "🌑",
-                $x if $x < 45 => "🌒",
-                $x if $x < 55 => "🌓",
-                $x if $x < 95 => "🌔",
-                _ => "🌕"
-            }
-        } else {
-            match $illum_int {
-                $x if $x < 5 => "", # nf-weather-moon_new
-                $x if $x < 45 => "", # nf-weather-moon_waxing_crescent_1
-                $x if $x < 55 => "", # nf-weather-moon_first_quarter
-                $x if $x < 95 => "", # nf-weather-moon_waxing_gibbous_1
-                _ => "" # nf-weather-moon_full
-            }
-        }
-
-        if $emoji {
-            match $phase_lower {
-                $s if ($s | str contains 'new moon') => "🌑",
-                $s if ($s | str contains 'waxing crescent') => "🌒",
-                $s if ($s | str contains 'first quarter') => "🌓",
-                $s if ($s | str contains 'waxing gibbous') => "🌔",
-                $s if ($s | str contains 'full moon') => "🌕",
-                $s if ($s | str contains 'waning gibbous') => "🌖",
-                $s if ($s | str contains 'last quarter') => "🌗",
-                $s if ($s | str contains 'waning crescent') => "🌘",
-                _ => $fallback
-            }
-        } else {
-            match $phase_lower {
-                $s if ($s | str contains 'new moon') => "",
-                $s if ($s | str contains 'waxing crescent') => "",
-                $s if ($s | str contains 'first quarter') => "",
-                $s if ($s | str contains 'waxing gibbous') => "",
-                $s if ($s | str contains 'full moon') => "",
-                $s if ($s | str contains 'waning gibbous') => "",
-                $s if ($s | str contains 'last quarter') => "",
-                $s if ($s | str contains 'waning crescent') => "",
-                _ => $fallback
-            }
-        }
-    }
-
-    # Beaufort Scale Calculation
-    let get_beaufort = {|kmph|
-        let k = ($kmph | into int)
-        match $k {
-            $x if $x < 1 => 0,
-            $x if $x <= 5 => 1,
-            $x if $x <= 11 => 2,
-            $x if $x <= 19 => 3,
-            $x if $x <= 28 => 4,
-            $x if $x <= 38 => 5,
-            $x if $x <= 49 => 6,
-            $x if $x <= 61 => 7,
-            $x if $x <= 74 => 8,
-            $x if $x <= 88 => 9,
-            $x if $x <= 102 => 10,
-            $x if $x <= 117 => 11,
-            _ => 12
-        }
-    }
-
-    # Beaufort Icon Closure
-    let get_beaufort_icon = {|beaufort_scale|
-        if $emoji or $text {
-            return $"[Bft ($beaufort_scale)]"
-        }
-        match $beaufort_scale {
-            0 => "", 1 => "", 2 => "", 3 => "", 4 => "", 5 => "",
-            6 => "", 7 => "", 8 => "", 9 => "", 10 => "", 11 => "", _ => ""
-        }
-    }
-
-    # Wind Direction Icon Closure
-    let get_wind_dir_icon = {|dir|
-        if $emoji or $text {
-            return $dir
-        }
-        match ($dir | str upcase) {
-            'N' => "", # nf-weather-wind_north
-            'NNE' | 'NE' | 'ENE' => "", # nf-weather-wind_north_east
-            'E' => "", # nf-weather-wind_east
-            'ESE' | 'SE' | 'SSE' => "", # nf-weather-wind_south_east
-            'S' => "", # nf-weather-wind_south
-            'SSW' | 'SW' | 'WSW' => "", # nf-weather-wind_south_west
-            'W' => "", # nf-weather-wind_west
-            'WNW' | 'NW' | 'NNW' => "", # nf-weather-wind_north_west
-            _ => $dir
-        }
-    }
-
     # Handle Astronomy Mode
     if $astro {
         if $debug { print $"(ansi cyan)ℹ Processing Astronomy Data...(ansi reset)" }
@@ -525,7 +524,7 @@ export def main [
         
         let moon_phase = ($current_astro.moon_phase)
         let moon_illum = ($current_astro.moon_illumination)
-        let moon_icon = if $text { '' } else { (do $get_moon_icon $moon_phase $moon_illum) }
+        let moon_icon = moon-icon $moon_phase $moon_illum --emoji=$emoji --text=$text
         
         let sunrise_icon = if $text { '' } else if $emoji { '🌅 ' } else { " " } # nf-weather-sunrise
         let sunset_icon = if $text { '' } else if $emoji { '🌇 ' } else { " " } # nf-weather-sunset
@@ -571,15 +570,15 @@ export def main [
             # Icons
             let weather_code = ($hour.weatherCode? | default '113')
             let weather_desc = ($hour.weatherDesc?.0?.value? | default 'Unknown')
-            let weather_icon = if $text { '' } else { (do $get_weather_icon $weather_code) }
+            let weather_icon = weather-icon $weather_code --emoji=$emoji --text=$text
             
             # Wind
             let wind_speed = ($hour | get -o $units.speed_key | default '0')
             let wind_k = ($hour.windspeedKmph? | default '0')
-            let beaufort_scale = (do $get_beaufort $wind_k)
-            let beaufort_icon = (do $get_beaufort_icon $beaufort_scale)
+            let beaufort_scale = beaufort-scale $wind_k
+            let beaufort_icon = beaufort-icon $beaufort_scale --emoji=$emoji --text=$text
             let wind_dir_str = ($hour.winddir16Point? | default 'N')
-            let wind_dir = (do $get_wind_dir_icon $wind_dir_str)
+            let wind_dir = wind-dir-icon $wind_dir_str --emoji=$emoji --text=$text
             
             let wind_display = $"($beaufort_icon) ($wind_speed)($units.speed_label) ($wind_dir)"
             
@@ -599,8 +598,8 @@ export def main [
             {
                 Time: $time_display,
                 Condition: $condition_str,
-                Temp: (do $format_temp $temp),
-                Feels: (do $format_temp $feels),
+                Temp: (format-temp $temp $units --text=$text),
+                Feels: (format-temp $feels $units --text=$text),
                 Precip: $precip_display,
                 Wind: $wind_display,
                 Humidity: $"($icon_humid)(($hour.humidity? | default '0'))%"
@@ -626,21 +625,21 @@ export def main [
             # Extract Wind and Rain
             let wind_speed = ($noon | get -o $units.speed_key | default '0')
             let wind_k = ($noon.windspeedKmph? | default '0')
-            let beaufort_scale = (do $get_beaufort $wind_k)
-            let beaufort_icon = (do $get_beaufort_icon $beaufort_scale)
+            let beaufort_scale = beaufort-scale $wind_k
+            let beaufort_icon = beaufort-icon $beaufort_scale --emoji=$emoji --text=$text
             
             let wind_dir_str = ($noon.winddir16Point? | default 'N')
-            let wind_dir = (do $get_wind_dir_icon $wind_dir_str)
+            let wind_dir = wind-dir-icon $wind_dir_str --emoji=$emoji --text=$text
             let precip_val = ($noon | get -o $units.precip_key | default '0.0')
             
             let weather_code = ($noon.weatherCode? | default '113')
             let weather_desc = ($noon.weatherDesc?.0?.value? | default 'Unknown')
-            let weather_icon = if $text { '' } else { (do $get_weather_icon $weather_code) }
+            let weather_icon = weather-icon $weather_code --emoji=$emoji --text=$text
             
             # Moon for forecast
             let moon_phase = ($day.astronomy.0.moon_phase)
             let moon_illum = ($day.astronomy.0.moon_illumination)
-            let moon_icon = if $text { '' } else { (do $get_moon_icon $moon_phase $moon_illum) }
+            let moon_icon = moon-icon $moon_phase $moon_illum --emoji=$emoji --text=$text
             
             let condition_str = if $text { $weather_desc } else { $"($weather_icon) ($weather_desc)" }
             
@@ -649,8 +648,8 @@ export def main [
             {
                 Date: $date,
                 Condition: $condition_str,
-                High: (do $format_temp $max_temp),
-                Low: (do $format_temp $min_temp),
+                High: (format-temp $max_temp $units --text=$text),
+                Low: (format-temp $min_temp $units --text=$text),
                 Rain: $"($precip_val)($units.precip_label)",
                 Wind: $wind_display,
                 Moon: $"($moon_icon) ($moon_phase)",
@@ -677,13 +676,13 @@ export def main [
     let astro = ($weather_data.astronomy | first)
     
     # Dynamic extraction using the units schema
-    let temp_val = ($current | get -o $units.temp_key | default '0' | into int)
-    let feels_val = ($current | get -o $units.feels_key | default '0' | into int)
+    let temp_val = ($current | get -o $units.temp_key | default '0')
+    let feels_val = ($current | get -o $units.feels_key | default '0')
 
     # Calculate Beaufort
     let wind_k = ($current.windspeedKmph? | default '0')
-    let beaufort_scale = (do $get_beaufort $wind_k)
-    let beaufort_icon = (do $get_beaufort_icon $beaufort_scale)
+    let beaufort_scale = beaufort-scale $wind_k
+    let beaufort_icon = beaufort-icon $beaufort_scale --emoji=$emoji --text=$text
 
     # Define icons for metrics
     let icon_wind = if $text { $"($beaufort_icon) " } else if $emoji { $"💨 ($beaufort_icon) " } else { $"($beaufort_icon) " }
@@ -697,7 +696,7 @@ export def main [
     # Wind, precipitation, visibility, pressure
     let wind_speed = ($current | get -o $units.speed_key | default '0')
     let wind_dir_str = ($current.winddir16Point? | default 'N')
-    let wind_dir = (do $get_wind_dir_icon $wind_dir_str)
+    let wind_dir = wind-dir-icon $wind_dir_str --emoji=$emoji --text=$text
     
     let wind = $"($icon_wind)($wind_speed)($units.speed_label) ($wind_dir)"
     let precip = $"($icon_rain)(($current | get -o $units.precip_key | default '0.0'))($units.precip_label)"
@@ -721,7 +720,7 @@ export def main [
     # COMPREHENSIVE WEATHER EMOJI MAPPING
     # Based on WorldWeatherOnline weather codes
     let weather_code = ($current.weatherCode? | default '113')
-    let weather_icon = if $text { '' } else { (do $get_weather_icon $weather_code) }
+    let weather_icon = weather-icon $weather_code --emoji=$emoji --text=$text
     
     # SEVERE WEATHER DETECTION
     # wttr.in doesn't provide NWS alerts, but we can flag severe codes:
@@ -739,9 +738,9 @@ export def main [
     # ENHANCED MOON PHASE EMOJI
     # More precise matching with moon illumination
     let moon_phase = ($astro.moon_phase? | default 'Unknown' | str downcase)
-    let moon_illum = ($astro.moon_illumination? | default '0' | into int)
+    let moon_illum = ($astro.moon_illumination? | default '0')
     
-    let moon_icon = if $text { '' } else { (do $get_moon_icon $moon_phase $moon_illum) }
+    let moon_icon = moon-icon $moon_phase $moon_illum --emoji=$emoji --text=$text
     
     let moon_display = if $text { 'Moon: ' } else { $"($moon_icon) " }
     let sunrise_display = if $text { 'Sunrise: ' } else if $emoji { '🌅 ' } else { " " } # nf-weather-sunrise
@@ -766,7 +765,7 @@ export def main [
     let ansi_grey = if $text { '' } else { (ansi grey) }
     let ansi_uv = if $text { '' } else { (ansi $uv_color) }
 
-    let temp_display = (do $format_temp $temp_val)
+    let temp_display = format-temp $temp_val $units --text=$text
 
     let condition_display = if $text { $"($weather_desc)($alert_icon)" } else { $"($weather_icon) ($weather_desc)($alert_icon)" }
 
@@ -782,7 +781,7 @@ export def main [
         Location: $location_display,
         Condition: $condition_display,
         Temperature: $temp_display,
-        Feels: (do $format_temp $feels_val),
+        Feels: (format-temp $feels_val $units --text=$text),
         Clouds: $"($icon_cloud)(($current.cloudcover? | default '0'))%",
         Rain: $precip,
         Humidity: $"($icon_humid)(($current.humidity? | default '0'))%",
