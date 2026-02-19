@@ -36,7 +36,7 @@ export def main [
     --astro (-a)                    # Show detailed astronomy data (Sunrise, Sunset, Moon phase, etc).
     --hourly (-h)                   # Show hourly forecast for today (3-hour intervals).
     --lang: string = ""             # Specify language code (e.g. 'fr', 'de', 'es', 'zh'). Empty = auto.
-] {
+]: nothing -> any {
     # URL encode for API (handles all special chars including Unicode)
     let encoded_city = ($city | url encode)
     
@@ -284,11 +284,11 @@ export def main [
     let data = $response
     
     # Validate response structure
-    if ($data | get -o current_condition | is-empty) {
+    if ($data.current_condition? | is-empty) {
         if $debug {
             print $"(ansi red_bold)━━━ DATA VALIDATION FAILED ━━━(ansi reset)"
             print 'Response structure check:'
-            print $"  Has current_condition: (not ($data | get -o current_condition | is-empty))"
+            print $"  Has current_condition: (not ($data.current_condition? | is-empty))"
             print ""
             print 'Available fields in response:'
             $data | columns | each {|col| print $"  - ($col)" }
@@ -321,9 +321,9 @@ export def main [
     let nearest = ($data.nearest_area | first)
     
     # Get location info (wttr.in provides this in nearest_area)
-    let area_name = ($nearest | get -o areaName.0.value | default $display_city)
-    let region = ($nearest | get -o region.0.value | default '')
-    let country_val = ($nearest | get -o country.0.value | default 'Unknown')
+    let area_name = ($nearest.areaName?.0?.value? | default $display_city)
+    let region = ($nearest.region?.0?.value? | default '')
+    let country_val = ($nearest.country?.0?.value? | default 'Unknown')
     let country = ($country_val | str downcase)
     
     # Determine units based on country
@@ -338,7 +338,7 @@ export def main [
 
     # Define unit-specific configuration (Nushell Idiom: Data over Control Flow)
     # This eliminates repetitive if/else checks during data extraction
-    let units = if $is_us {
+    let units: record = if $is_us {
         {
             temp_label: '°F', speed_label: 'mph', precip_label: 'in', vis_label: 'mi', press_label: 'inHg',
             temp_key: 'temp_F', feels_key: 'FeelsLikeF',
@@ -573,28 +573,28 @@ export def main [
             let time_display = $"($t_str | str substring 0..1):($t_str | str substring 2..3)"
             
             # Extract Temp (Note: hourly uses tempF/tempC, not temp_F/temp_C)
-            let temp = if $is_us { ($hour | get -o tempF | default '0') } else { ($hour | get -o tempC | default '0') }
-            let feels = if $is_us { ($hour | get -o FeelsLikeF | default '0') } else { ($hour | get -o FeelsLikeC | default '0') }
+            let temp = if $is_us { ($hour.tempF? | default '0') } else { ($hour.tempC? | default '0') }
+            let feels = if $is_us { ($hour.FeelsLikeF? | default '0') } else { ($hour.FeelsLikeC? | default '0') }
             
             # Icons
-            let weather_code = ($hour | get -o weatherCode | default '113')
-            let weather_desc = ($hour | get -o weatherDesc.0.value | default 'Unknown')
+            let weather_code = ($hour.weatherCode? | default '113')
+            let weather_desc = ($hour.weatherDesc?.0?.value? | default 'Unknown')
             let weather_icon = if $text { '' } else { (do $get_weather_icon $weather_code) }
             
             # Wind
             let wind_speed = ($hour | get -o $units.speed_key | default '0')
-            let wind_k = ($hour | get -o windspeedKmph | default '0')
+            let wind_k = ($hour.windspeedKmph? | default '0')
             let beaufort_scale = (do $get_beaufort $wind_k)
             let beaufort_icon = (do $get_beaufort_icon $beaufort_scale)
-            let wind_dir_str = ($hour | get -o winddir16Point | default 'N')
+            let wind_dir_str = ($hour.winddir16Point? | default 'N')
             let wind_dir = (do $get_wind_dir_icon $wind_dir_str)
             
             let wind_display = $"($beaufort_icon) ($wind_speed)($units.speed_label) ($wind_dir)"
             
             # Precip / Chance
             let precip_val = ($hour | get -o $units.precip_key | default '0.0')
-            let chance_rain = ($hour | get -o chanceofrain | default '0')
-            let chance_snow = ($hour | get -o chanceofsnow | default '0')
+            let chance_rain = ($hour.chanceofrain? | default '0')
+            let chance_snow = ($hour.chanceofsnow? | default '0')
             
             let precip_display = if ($chance_snow | into int) > 0 {
                 $"($icon_snow)($chance_snow)% / ($precip_val)($units.precip_label)"
@@ -611,7 +611,7 @@ export def main [
                 Feels: (do $format_temp $feels),
                 Precip: $precip_display,
                 Wind: $wind_display,
-                Humidity: $"($icon_humid)(($hour | get -o humidity | default '0'))%"
+                Humidity: $"($icon_humid)(($hour.humidity? | default '0'))%"
             }
         })
 
@@ -633,16 +633,16 @@ export def main [
             
             # Extract Wind and Rain
             let wind_speed = ($noon | get -o $units.speed_key | default '0')
-            let wind_k = ($noon | get -o windspeedKmph | default '0')
+            let wind_k = ($noon.windspeedKmph? | default '0')
             let beaufort_scale = (do $get_beaufort $wind_k)
             let beaufort_icon = (do $get_beaufort_icon $beaufort_scale)
             
-            let wind_dir_str = ($noon | get -o winddir16Point | default 'N')
+            let wind_dir_str = ($noon.winddir16Point? | default 'N')
             let wind_dir = (do $get_wind_dir_icon $wind_dir_str)
             let precip_val = ($noon | get -o $units.precip_key | default '0.0')
             
-            let weather_code = ($noon | get -o weatherCode | default '113')
-            let weather_desc = ($noon | get -o weatherDesc.0.value | default 'Unknown')
+            let weather_code = ($noon.weatherCode? | default '113')
+            let weather_desc = ($noon.weatherDesc?.0?.value? | default 'Unknown')
             let weather_icon = if $text { '' } else { (do $get_weather_icon $weather_code) }
             
             # Moon for forecast
@@ -689,7 +689,7 @@ export def main [
     let feels_val = ($current | get -o $units.feels_key | default '0' | into int)
 
     # Calculate Beaufort
-    let wind_k = ($current | get -o windspeedKmph | default '0')
+    let wind_k = ($current.windspeedKmph? | default '0')
     let beaufort_scale = (do $get_beaufort $wind_k)
     let beaufort_icon = (do $get_beaufort_icon $beaufort_scale)
 
@@ -704,7 +704,7 @@ export def main [
 
     # Wind, precipitation, visibility, pressure
     let wind_speed = ($current | get -o $units.speed_key | default '0')
-    let wind_dir_str = ($current | get -o winddir16Point | default 'N')
+    let wind_dir_str = ($current.winddir16Point? | default 'N')
     let wind_dir = (do $get_wind_dir_icon $wind_dir_str)
     
     let wind = $"($icon_wind)($wind_speed)($units.speed_label) ($wind_dir)"
@@ -713,7 +713,7 @@ export def main [
     let pressure = $"($icon_press)(($current | get -o $units.press_key | default '0'))($units.press_label)"
 
     # UV Index & Sky Styling
-    let uv = ($current | get -o uvIndex | default '0' | into int)
+    let uv = ($current.uvIndex? | default '0' | into int)
     
     # UV color based on exposure level
     let uv_color = if $uv >= 8 {
@@ -728,7 +728,7 @@ export def main [
 
     # COMPREHENSIVE WEATHER EMOJI MAPPING
     # Based on WorldWeatherOnline weather codes
-    let weather_code = ($current | get -o weatherCode | default '113')
+    let weather_code = ($current.weatherCode? | default '113')
     let weather_icon = if $text { '' } else { (do $get_weather_icon $weather_code) }
     
     # SEVERE WEATHER DETECTION
@@ -742,12 +742,12 @@ export def main [
     } else { '' }
 
     # Get weather description for additional context
-    let weather_desc = ($current | get -o weatherDesc.0.value | default 'Unknown')
+    let weather_desc = ($current.weatherDesc?.0?.value? | default 'Unknown')
     
     # ENHANCED MOON PHASE EMOJI
     # More precise matching with moon illumination
-    let moon_phase = ($astro | get -o moon_phase | default 'Unknown' | str downcase)
-    let moon_illum = ($astro | get -o moon_illumination | default '0' | into int)
+    let moon_phase = ($astro.moon_phase? | default 'Unknown' | str downcase)
+    let moon_illum = ($astro.moon_illumination? | default '0' | into int)
     
     let moon_icon = if $text { '' } else { (do $get_moon_icon $moon_phase $moon_illum) }
     
@@ -757,14 +757,14 @@ export def main [
 
     # Format the update time safely
     let update_str = try {
-        $current | get -o localObsDateTime | into datetime | format date '%Y-%m-%d %H:%M'
+        $current.localObsDateTime? | into datetime | format date '%Y-%m-%d %H:%M'
     } catch {
         'Unknown'
     }
 
     # Format UTC time safely (for consistency)
     let utc_str = try {
-        $current | get -o observation_time | into datetime | format date '%H:%M'
+        $current.observation_time? | into datetime | format date '%H:%M'
     } catch {
         'Unknown'
     }
@@ -791,14 +791,14 @@ export def main [
         Condition: $condition_display,
         Temperature: $temp_display,
         Feels: (do $format_temp $feels_val),
-        Clouds: $"($icon_cloud)(($current | get -o cloudcover | default '0'))%",
+        Clouds: $"($icon_cloud)(($current.cloudcover? | default '0'))%",
         Rain: $precip,
-        Humidity: $"($icon_humid)(($current | get -o humidity | default '0'))%",
+        Humidity: $"($icon_humid)(($current.humidity? | default '0'))%",
         Wind: $wind,
         Pressure: $pressure,
         Visibility: $vis,
         UV: $"($icon_uv)($ansi_uv)($uv)($ansi_reset)",
-        Astronomy: $"($sunrise_display)(($astro | get -o sunrise | default 'N/A')) | ($sunset_display)(($astro | get -o sunset | default 'N/A')) | ($moon_display)(($astro | get -o moon_illumination | default '0'))%",
+        Astronomy: $"($sunrise_display)(($astro.sunrise? | default 'N/A')) | ($sunset_display)(($astro.sunset? | default 'N/A')) | ($moon_display)(($astro.moon_illumination? | default '0'))%",
         Updated: $"($ansi_grey)($update_str) \(Local\) / ($utc_str) \(UTC\)($ansi_reset)"
     }
     
