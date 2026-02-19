@@ -200,7 +200,7 @@ export def main [
     --lang: string = ""             # Specify language code (e.g. 'fr', 'de', 'es', 'zh'). Empty = auto.
 ]: nothing -> any {
     # URL encode for API (handles all special chars including Unicode)
-    let encoded_city = ($city | url encode)
+    $city | url encode | let encoded_city
     
     # Display name is just the original input
     let display_city = if ($city | is-empty) { 'Auto-detect' } else { $city }
@@ -211,11 +211,11 @@ export def main [
     
     # Cache Configuration
     let base_dir = ($nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp'))
-    let cache_dir = ($base_dir | path join 'nu_weather_cache')
+    $base_dir | path join 'nu_weather_cache' | let cache_dir
     if not ($cache_dir | path exists) { mkdir $cache_dir }
     let lang_suffix = if ($lang | is-empty) { '' } else { $"_($lang)" }
     let cache_file = if ($encoded_city | is-empty) { $"auto($lang_suffix).json" } else { $"($encoded_city)($lang_suffix).json" }
-    let cache_path = ($cache_dir | path join $cache_file)
+    $cache_dir | path join $cache_file | let cache_path
     let is_cache_valid = if $force {
         false
     } else if ($cache_path | path exists) {
@@ -472,13 +472,13 @@ export def main [
     }
     
     # Common data extraction
-    let nearest = ($data.nearest_area | first)
+    $data.nearest_area | first | let nearest
     
     # Get location info (wttr.in provides this in nearest_area)
     let area_name = ($nearest.areaName?.0?.value? | default $display_city)
     let region = ($nearest.region?.0?.value? | default '')
     let country_val = ($nearest.country?.0?.value? | default 'Unknown')
-    let country = ($country_val | str downcase)
+    $country_val | str downcase | let country
     
     # Determine units based on country
     # Priority: Force Imperial > Force Metric > Country detection
@@ -520,7 +520,7 @@ export def main [
     # Handle Astronomy Mode
     if $astro {
         if $debug { print $"(ansi cyan)ℹ Processing Astronomy Data...(ansi reset)" }
-        let current_astro = ($data.weather | first | get astronomy | first)
+        $data.weather | first | get astronomy | first | let current_astro
         
         let moon_phase = ($current_astro.moon_phase)
         let moon_illum = ($current_astro.moon_illumination)
@@ -551,7 +551,7 @@ export def main [
     # Handle Hourly Mode
     if $hourly {
         if $debug { print $"(ansi cyan)ℹ Processing Hourly Forecast...(ansi reset)" }
-        let today = ($data.weather | first)
+        $data.weather | first | let today
         
         # Define icons for hourly table
         let icon_snow = if $text { '' } else if $emoji { '❄ ' } else { " " }
@@ -671,9 +671,10 @@ export def main [
     }
     
     # Safe data extraction for Current Weather
-    let current = ($data.current_condition | first)
-    let weather_data = ($data.weather | first)
-    let astro = ($weather_data.astronomy | first)
+    $data.current_condition | first | let current
+    $data.weather | first | let weather_data
+    $weather_data.astronomy | first | let astro
+    unlet $data
     
     # Dynamic extraction using the units schema
     let temp_val = ($current | get -o $units.temp_key | default '0')
