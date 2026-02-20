@@ -223,7 +223,7 @@ export def main [
     --text (-t)                     # Plain text output (no icons, no colors).
     --force (-f)                    # Bypass cache and force a network request.
     --astro (-a)                    # Show detailed astronomy data (Sunrise, Sunset, Moon phase, etc).
-    --hourly (-h)                   # Show hourly forecast for today (3-hour intervals).
+    --hourly (-H)                   # Show hourly forecast for today (3-hour intervals).
     --lang: string = ""             # Specify language code (e.g. 'fr', 'de', 'es', 'zh'). Empty = auto.
 ]: nothing -> any {
     # URL encode for API (handles all special chars including Unicode)
