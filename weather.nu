@@ -767,7 +767,15 @@ export def main [
     # Based on WorldWeatherOnline weather codes
     $current.weatherCode? | default '113' | let weather_code: string
     weather-icon $weather_code --emoji=$emoji --text=$text | let weather_icon: string
-    
+
+    # Determine precipitation type from weather code
+    let precip_label: string = match $weather_code {
+        '179' | '323' | '326' | '329' | '332' | '335' | '338' | '368' | '371' => 'Snow',
+        '227' | '230' => 'Snow',
+        '182' | '317' | '320' | '362' | '365' => 'Sleet',
+        '350' | '374' | '377' => 'Hail',
+        _ => 'Rain'
+    }
     # SEVERE WEATHER DETECTION
     # wttr.in doesn't provide NWS alerts, but we can flag severe codes:
     # 227 (Blowing snow), 230 (Blizzard), 386/389/392/395 (Thunderstorms)
@@ -829,7 +837,7 @@ export def main [
         Temperature: $temp_display,
         Feels: (format-temp $feels_val $units --text=$text),
         Clouds: $"($icon_cloud)(($current.cloudcover? | default '0'))%",
-        Rain: $precip,
+        ($precip_label): $precip,
         Humidity: $"($icon_humid)(($current.humidity? | default '0'))%",
         Wind: $wind,
         Pressure: $pressure,
