@@ -227,23 +227,23 @@ export def main [
     --lang: string = ""             # Specify language code (e.g. 'fr', 'de', 'es', 'zh'). Empty = auto.
 ]: nothing -> any {
     # URL encode for API (handles all special chars including Unicode)
-    $city | url encode | let url_encoded_city
+    $city | url encode | let url_encoded_city: string
     
     # Display name is just the original input
-    let display_city = if ($city | is-empty) { 'Auto-detect' } else { $city }
+    let display_city: string = if ($city | is-empty) { 'Auto-detect' } else { $city }
     
     # Build the full URL
-    let language_param = if ($lang | is-empty) { '' } else { $"&lang=($lang)" }
-    let url = $"https://wttr.in/($url_encoded_city)?format=j1($language_param)"
+    let language_param: string = if ($lang | is-empty) { '' } else { $"&lang=($lang)" }
+    $"https://wttr.in/($url_encoded_city)?format=j1($language_param)" | let url: string
     
     # Cache Configuration
-    let base_dir = ($nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp'))
-    $base_dir | path join 'nu_weather_cache' | let cache_dir
+    $nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp') | let base_dir: string
+    $base_dir | path join 'nu_weather_cache' | let cache_dir: string
     if not ($cache_dir | path exists) { mkdir $cache_dir }
-    let language_suffix = if ($lang | is-empty) { '' } else { $"_($lang)" }
-    let cache_file = if ($url_encoded_city | is-empty) { $"auto($language_suffix).json" } else { $"($url_encoded_city)($language_suffix).json" }
-    $cache_dir | path join $cache_file | let cache_path
-    let is_cache_valid = if $force {
+    let language_suffix: string = if ($lang | is-empty) { '' } else { $"_($lang)" }
+    let cache_file: string = if ($url_encoded_city | is-empty) { $"auto($language_suffix).json" } else { $"($url_encoded_city)($language_suffix).json" }
+    $cache_dir | path join $cache_file | let cache_path: string
+    let is_cache_valid: bool = if $force {
         false
     } else if ($cache_path | path exists) {
         let modified = (ls $cache_path | get modified | first)
@@ -299,7 +299,7 @@ export def main [
     }
     
     # Fetch weather data with proper error handling
-    let response = if $test {
+    let response: record = if $test {
         if $debug {
             print $"(ansi yellow)⚠ USING DUMMY TEST DATA(ansi reset)"
             print 'Skipping network request...'
@@ -466,7 +466,7 @@ export def main [
         print ""
     }
     
-    let data = $response
+    let data: record = $response
     
     # Validate response structure
     if ($data.current_condition? | is-empty) {
@@ -499,17 +499,17 @@ export def main [
     }
     
     # Common data extraction
-    $data.nearest_area | first | let nearest
+    $data.nearest_area | first | let nearest: record
     
     # Get location info (wttr.in provides this in nearest_area)
-    let area_name = ($nearest.areaName?.0?.value? | default $display_city)
-    let region = ($nearest.region?.0?.value? | default '')
-    let country_val = ($nearest.country?.0?.value? | default 'Unknown')
-    $country_val | str downcase | let country
+    $nearest.areaName?.0?.value? | default $display_city | let area_name: string
+    $nearest.region?.0?.value? | default '' | let region: string
+    $nearest.country?.0?.value? | default 'Unknown' | let country_val: string
+    $country_val | str downcase | let country: string
     
     # Determine units based on country
     # Priority: Force Imperial > Force Metric > Country detection
-    let is_us = if $imperial { 
+    let is_us: bool = if $imperial { 
         true 
     } else if $metric { 
         false 
@@ -538,7 +538,7 @@ export def main [
     }
 
     # Format location string (City, Region for US; City, Country for others)
-    let actual_location = if $is_us and not ($region | is-empty) {
+    let actual_location: string = if $is_us and not ($region | is-empty) {
         $"($area_name), ($region)"
     } else {
         $"($area_name), ($country_val)"
@@ -698,44 +698,44 @@ export def main [
     }
     
     # Safe data extraction for Current Weather
-    $data.current_condition | first | let current
-    $data.weather | first | let weather_data
-    $weather_data.astronomy | first | let astro
+    $data.current_condition | first | let current: record
+    $data.weather | first | let weather_data: record
+    $weather_data.astronomy | first | let astro: record
     unlet $data
     
     # Dynamic extraction using the units schema
-    let temp_val = ($current | get -o $units.temp_key | default '0')
-    let feels_val = ($current | get -o $units.feels_key | default '0')
+    $current | get -o $units.temp_key | default '0' | let temp_val: string
+    $current | get -o $units.feels_key | default '0' | let feels_val: string
 
     # Calculate Beaufort
-    let wind_k = ($current.windspeedKmph? | default '0')
-    let beaufort_scale = beaufort-scale $wind_k
-    let beaufort_icon = beaufort-icon $beaufort_scale --emoji=$emoji --text=$text
+    $current.windspeedKmph? | default '0' | let wind_k: string
+    beaufort-scale $wind_k | let beaufort_scale: int
+    beaufort-icon $beaufort_scale --emoji=$emoji --text=$text | let beaufort_icon: string
 
     # Define icons for metrics
-    let icon_wind = if $text { $"($beaufort_icon) " } else if $emoji { $"💨 ($beaufort_icon) " } else { $"($beaufort_icon) " }
-    let icon_rain = if $text { '' } else if $emoji { '☔ ' } else { " " }
-    let icon_vis = if $text { '' } else if $emoji { '👁 ' } else { " " }
-    let icon_press = if $text { '' } else if $emoji { '⏲ ' } else { " " }
-    let icon_cloud = if $text { '' } else if $emoji { '☁ ' } else { " " }
-    let icon_humid = if $text { '' } else if $emoji { '💧 ' } else { " " }
-    let icon_uv = if $text { '' } else if $emoji { '☀ ' } else { " " }
+    let icon_wind: string = if $text { $"($beaufort_icon) " } else if $emoji { $"💨 ($beaufort_icon) " } else { $"($beaufort_icon) " }
+    let icon_rain: string = if $text { '' } else if $emoji { '☔ ' } else { " " }
+    let icon_vis: string = if $text { '' } else if $emoji { '👁 ' } else { " " }
+    let icon_press: string = if $text { '' } else if $emoji { '⏲ ' } else { " " }
+    let icon_cloud: string = if $text { '' } else if $emoji { '☁ ' } else { " " }
+    let icon_humid: string = if $text { '' } else if $emoji { '💧 ' } else { " " }
+    let icon_uv: string = if $text { '' } else if $emoji { '☀ ' } else { " " }
 
     # Wind, precipitation, visibility, pressure
-    let wind_speed = ($current | get -o $units.speed_key | default '0')
-    let wind_dir_str = ($current.winddir16Point? | default 'N')
-    let wind_dir = wind-dir-icon $wind_dir_str --emoji=$emoji --text=$text
+    $current | get -o $units.speed_key | default '0' | let wind_speed: string
+    $current.winddir16Point? | default 'N' | let wind_dir_str: string
+    wind-dir-icon $wind_dir_str --emoji=$emoji --text=$text | let wind_dir: string
     
-    let wind = $"($icon_wind)($wind_speed)($units.speed_label) ($wind_dir)"
-    let precip = $"($icon_rain)(($current | get -o $units.precip_key | default '0.0'))($units.precip_label)"
-    let vis = $"($icon_vis)(($current | get -o $units.vis_key | default '0'))($units.vis_label)"
-    let pressure = $"($icon_press)(($current | get -o $units.press_key | default '0'))($units.press_label)"
+    $"($icon_wind)($wind_speed)($units.speed_label) ($wind_dir)" | let wind: string
+    $"($icon_rain)(($current | get -o $units.precip_key | default '0.0'))($units.precip_label)" | let precip: string
+    $"($icon_vis)(($current | get -o $units.vis_key | default '0'))($units.vis_label)" | let vis: string
+    $"($icon_press)(($current | get -o $units.press_key | default '0'))($units.press_label)" | let pressure: string
 
     # UV Index & Sky Styling
-    let uv = ($current.uvIndex? | default '0' | into int)
+    $current.uvIndex? | default '0' | into int | let uv: int
     
     # UV color based on exposure level
-    let uv_color = if $uv >= 8 {
+    let uv_color: string = if $uv >= 8 {
         'red'
     } else if $uv >= 6 {
         'yellow'
@@ -747,65 +747,65 @@ export def main [
 
     # COMPREHENSIVE WEATHER EMOJI MAPPING
     # Based on WorldWeatherOnline weather codes
-    let weather_code = ($current.weatherCode? | default '113')
-    let weather_icon = weather-icon $weather_code --emoji=$emoji --text=$text
+    $current.weatherCode? | default '113' | let weather_code: string
+    weather-icon $weather_code --emoji=$emoji --text=$text | let weather_icon: string
     
     # SEVERE WEATHER DETECTION
     # wttr.in doesn't provide NWS alerts, but we can flag severe codes:
     # 227 (Blowing snow), 230 (Blizzard), 386/389/392/395 (Thunderstorms)
-    let severe_codes = ['227' '230' '386' '389' '392' '395']
-    let is_severe = ($weather_code in $severe_codes)
+    let severe_codes: list<string> = ['227' '230' '386' '389' '392' '395']
+    let is_severe: bool = ($weather_code in $severe_codes)
     
-    let alert_icon = if $is_severe {
+    let alert_icon: string = if $is_severe {
         if $text { ' [SEVERE]' } else if $emoji { ' ⚠️' } else { ' ' } # nf-weather-storm_warning
     } else { '' }
 
     # Get weather description for additional context
-    let weather_desc = ($current.weatherDesc?.0?.value? | default 'Unknown')
+    $current.weatherDesc?.0?.value? | default 'Unknown' | let weather_desc: string
     
     # ENHANCED MOON PHASE EMOJI
     # More precise matching with moon illumination
-    let moon_phase = ($astro.moon_phase? | default 'Unknown' | str downcase)
-    let moon_illum = ($astro.moon_illumination? | default '0')
+    $astro.moon_phase? | default 'Unknown' | str downcase | let moon_phase: string
+    $astro.moon_illumination? | default '0' | let moon_illum: string
     
-    let moon_icon = moon-icon $moon_phase $moon_illum --emoji=$emoji --text=$text
+    moon-icon $moon_phase $moon_illum --emoji=$emoji --text=$text | let moon_icon: string
     
-    let moon_display = if $text { 'Moon: ' } else { $"($moon_icon) " }
-    let sunrise_display = if $text { 'Sunrise: ' } else if $emoji { '🌅 ' } else { " " } # nf-weather-sunrise
-    let sunset_display = if $text { 'Sunset: ' } else if $emoji { '🌇 ' } else { " " } # nf-weather-sunset
+    let moon_display: string = if $text { 'Moon: ' } else { $"($moon_icon) " }
+    let sunrise_display: string = if $text { 'Sunrise: ' } else if $emoji { '🌅 ' } else { " " } # nf-weather-sunrise
+    let sunset_display: string = if $text { 'Sunset: ' } else if $emoji { '🌇 ' } else { " " } # nf-weather-sunset
 
     # Format the update time safely
-    let update_str = try {
+    let update_str: string = try {
         $current.localObsDateTime? | into datetime | format date '%Y-%m-%d %H:%M'
     } catch {
         'Unknown'
     }
 
     # Format UTC time safely (for consistency)
-    let utc_str = try {
+    let utc_str: string = try {
         $current.observation_time? | into datetime | format date '%H:%M'
     } catch {
         'Unknown'
     }
 
     # Prepare ANSI colors (empty if text mode)
-    let ansi_reset = if $text { '' } else { (ansi reset) }
-    let ansi_grey = if $text { '' } else { (ansi grey) }
-    let ansi_uv = if $text { '' } else { (ansi $uv_color) }
+    let ansi_reset: string = if $text { '' } else { (ansi reset) }
+    let ansi_grey: string = if $text { '' } else { (ansi grey) }
+    let ansi_uv: string = if $text { '' } else { (ansi $uv_color) }
 
-    let temp_display = format-temp $temp_val $units --text=$text
+    format-temp $temp_val $units --text=$text | let temp_display: string
 
-    let condition_display = if $text { $"($weather_desc)($alert_icon)" } else { $"($weather_icon) ($weather_desc)($alert_icon)" }
+    let condition_display: string = if $text { $"($weather_desc)($alert_icon)" } else { $"($weather_icon) ($weather_desc)($alert_icon)" }
 
-    let location_display = if $text or $raw {
+    let location_display: string = if $text or $raw {
         $actual_location
     } else {
-        let link_url = $"https://wttr.in/($url_encoded_city)"
+        $"https://wttr.in/($url_encoded_city)" | let link_url: string
         $link_url | ansi link --text $actual_location
     }
 
     # Build output with weather description
-    let output = {
+    let output: record = {
         Location: $location_display,
         Condition: $condition_display,
         Temperature: $temp_display,
@@ -835,7 +835,7 @@ export def main [
     }
     
     if $oneline {
-        let oneline_emoji = if $text { '' } else { $"($weather_icon) " }
+        let oneline_emoji: string = if $text { '' } else { $"($weather_icon) " }
         return $"($actual_location): ($oneline_emoji)($temp_val)($units.temp_label) - ($weather_desc)"
     }
     
