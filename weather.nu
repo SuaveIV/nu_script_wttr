@@ -547,18 +547,18 @@ export def main [
     # Handle Astronomy Mode
     if $astro {
         if $debug { print $"(ansi cyan)ℹ Processing Astronomy Data...(ansi reset)" }
-        $data.weather | first | get astronomy | first | let current_astro
+        $data.weather | first | get astronomy | first | let current_astro: record
         
-        let moon_phase = ($current_astro.moon_phase)
-        let moon_illum = ($current_astro.moon_illumination)
-        let moon_icon = moon-icon $moon_phase $moon_illum --emoji=$emoji --text=$text
+        $current_astro.moon_phase | let moon_phase: string
+        $current_astro.moon_illumination | let moon_illum: string
+        moon-icon $moon_phase $moon_illum --emoji=$emoji --text=$text | let moon_icon: string
         
-        let sunrise_icon = if $text { '' } else if $emoji { '🌅 ' } else { " " } # nf-weather-sunrise
-        let sunset_icon = if $text { '' } else if $emoji { '🌇 ' } else { " " } # nf-weather-sunset
-        let moonrise_icon = if $text { '' } else if $emoji { "☾↑ " } else { " " } # nf-weather-moonrise
-        let moonset_icon = if $text { '' } else if $emoji { "☾↓ " } else { " " } # nf-weather-moonset
+        let sunrise_icon: string = if $text { '' } else if $emoji { '🌅 ' } else { " " } # nf-weather-sunrise
+        let sunset_icon: string = if $text { '' } else if $emoji { '🌇 ' } else { " " } # nf-weather-sunset
+        let moonrise_icon: string = if $text { '' } else if $emoji { "☾↑ " } else { " " } # nf-weather-moonrise
+        let moonset_icon: string = if $text { '' } else if $emoji { "☾↓ " } else { " " } # nf-weather-moonset
         
-        let output = {
+        let output: record = {
             "Sunrise": $"($sunrise_icon)($current_astro.sunrise)",
             "Sunset": $"($sunset_icon)($current_astro.sunset)",
             "Moonrise": $"($moonrise_icon)($current_astro.moonrise)",
@@ -578,49 +578,49 @@ export def main [
     # Handle Hourly Mode
     if $hourly {
         if $debug { print $"(ansi cyan)ℹ Processing Hourly Forecast...(ansi reset)" }
-        $data.weather | first | let today
+        $data.weather | first | let today: record
         
         # Define icons for hourly table
-        let icon_snow = if $text { '' } else if $emoji { '❄ ' } else { " " }
-        let icon_rain = if $text { '' } else if $emoji { '☔ ' } else { " " }
-        let icon_humid = if $text { '' } else if $emoji { '💧 ' } else { " " }
+        let icon_snow: string = if $text { '' } else if $emoji { '❄ ' } else { " " }
+        let icon_rain: string = if $text { '' } else if $emoji { '☔ ' } else { " " }
+        let icon_humid: string = if $text { '' } else if $emoji { '💧 ' } else { " " }
 
-        let hourly_table = ($today.hourly | each {|hour|
+        let hourly_table: list<record> = ($today.hourly | compact | each {|hour|
             # Format time (e.g., "1200" -> "12:00")
-            let t_str = ($hour.time | into string | fill -a r -w 4 -c '0')
-            let time_display = $"($t_str | str substring 0..1):($t_str | str substring 2..3)"
+            $hour.time | into string | fill -a r -w 4 -c '0' | let t_str: string
+            $"($t_str | str substring 0..1):($t_str | str substring 2..3)" | let time_display: string
             
             # Extract Temp (Note: hourly uses tempF/tempC, not temp_F/temp_C)
-            let temp = if $is_us { ($hour.tempF? | default '0') } else { ($hour.tempC? | default '0') }
-            let feels = if $is_us { ($hour.FeelsLikeF? | default '0') } else { ($hour.FeelsLikeC? | default '0') }
+            let temp: string = if $is_us { ($hour.tempF? | default '0') } else { ($hour.tempC? | default '0') }
+            let feels: string = if $is_us { ($hour.FeelsLikeF? | default '0') } else { ($hour.FeelsLikeC? | default '0') }
             
             # Icons
-            let weather_code = ($hour.weatherCode? | default '113')
-            let weather_desc = ($hour.weatherDesc?.0?.value? | default 'Unknown')
-            let weather_icon = weather-icon $weather_code --emoji=$emoji --text=$text
+            $hour.weatherCode? | default '113' | let weather_code: string
+            $hour.weatherDesc?.0?.value? | default 'Unknown' | let weather_desc: string
+            weather-icon $weather_code --emoji=$emoji --text=$text | let weather_icon: string
             
             # Wind
-            let wind_speed = ($hour | get -o $units.speed_key | default '0')
-            let wind_k = ($hour.windspeedKmph? | default '0')
-            let beaufort_scale = beaufort-scale $wind_k
-            let beaufort_icon = beaufort-icon $beaufort_scale --emoji=$emoji --text=$text
-            let wind_dir_str = ($hour.winddir16Point? | default 'N')
-            let wind_dir = wind-dir-icon $wind_dir_str --emoji=$emoji --text=$text
+            $hour | get -o $units.speed_key | default '0' | let wind_speed: string
+            $hour.windspeedKmph? | default '0' | let wind_k: string
+            beaufort-scale $wind_k | let beaufort_scale: int
+            beaufort-icon $beaufort_scale --emoji=$emoji --text=$text | let beaufort_icon: string
+            $hour.winddir16Point? | default 'N' | let wind_dir_str: string
+            wind-dir-icon $wind_dir_str --emoji=$emoji --text=$text | let wind_dir: string
             
-            let wind_display = $"($beaufort_icon) ($wind_speed)($units.speed_label) ($wind_dir)"
+            $"($beaufort_icon) ($wind_speed)($units.speed_label) ($wind_dir)" | let wind_display: string
             
             # Precip / Chance
-            let precip_val = ($hour | get -o $units.precip_key | default '0.0')
-            let chance_rain = ($hour.chanceofrain? | default '0')
-            let chance_snow = ($hour.chanceofsnow? | default '0')
+            $hour | get -o $units.precip_key | default '0.0' | let precip_val: string
+            $hour.chanceofrain? | default '0' | let chance_rain: string
+            $hour.chanceofsnow? | default '0' | let chance_snow: string
             
-            let precip_display = if ($chance_snow | into int) > 0 {
+            let precip_display: string = if ($chance_snow | into int) > 0 {
                 $"($icon_snow)($chance_snow)% / ($precip_val)($units.precip_label)"
             } else {
                 $"($icon_rain)($chance_rain)% / ($precip_val)($units.precip_label)"
             }
 
-            let condition_str = if $text { $weather_desc } else { $"($weather_icon) ($weather_desc)" }
+            let condition_str: string = if $text { $weather_desc } else { $"($weather_icon) ($weather_desc)" }
 
             {
                 Time: $time_display,
@@ -641,36 +641,36 @@ export def main [
     # Handle Forecast Mode
     if $forecast {
         if $debug { print $"(ansi cyan)ℹ Processing 3-Day Forecast...(ansi reset)" }
-        let forecast_table = ($data.weather | each {|day|
-            let date = ($day.date | into datetime | format date '%a, %b %d')
-            let max_temp = ($day | get $units.forecast_max_key)
-            let min_temp = ($day | get $units.forecast_min_key)
+        let forecast_table: list<record> = ($data.weather | compact | each {|day|
+            $day.date | into datetime | format date '%a, %b %d' | let date: string
+            $day | get $units.forecast_max_key | let max_temp: string
+            $day | get $units.forecast_min_key | let min_temp: string
             
             # Get noon weather for icon (approximate daily condition)
-            let noon = ($day.hourly | where time == '1200' | first | default ($day.hourly | first))
+            $day.hourly | where time == '1200' | first | default ($day.hourly | first) | let noon: record
             
             # Extract Wind and Rain
-            let wind_speed = ($noon | get -o $units.speed_key | default '0')
-            let wind_k = ($noon.windspeedKmph? | default '0')
-            let beaufort_scale = beaufort-scale $wind_k
-            let beaufort_icon = beaufort-icon $beaufort_scale --emoji=$emoji --text=$text
+            $noon | get -o $units.speed_key | default '0' | let wind_speed: string
+            $noon.windspeedKmph? | default '0' | let wind_k: string
+            beaufort-scale $wind_k | let beaufort_scale: int
+            beaufort-icon $beaufort_scale --emoji=$emoji --text=$text | let beaufort_icon: string
             
-            let wind_dir_str = ($noon.winddir16Point? | default 'N')
-            let wind_dir = wind-dir-icon $wind_dir_str --emoji=$emoji --text=$text
-            let precip_val = ($noon | get -o $units.precip_key | default '0.0')
+            $noon.winddir16Point? | default 'N' | let wind_dir_str: string
+            wind-dir-icon $wind_dir_str --emoji=$emoji --text=$text | let wind_dir: string
+            $noon | get -o $units.precip_key | default '0.0' | let precip_val: string
             
-            let weather_code = ($noon.weatherCode? | default '113')
-            let weather_desc = ($noon.weatherDesc?.0?.value? | default 'Unknown')
-            let weather_icon = weather-icon $weather_code --emoji=$emoji --text=$text
+            $noon.weatherCode? | default '113' | let weather_code: string
+            $noon.weatherDesc?.0?.value? | default 'Unknown' | let weather_desc: string
+            weather-icon $weather_code --emoji=$emoji --text=$text | let weather_icon: string
             
             # Moon for forecast
-            let moon_phase = ($day.astronomy.0.moon_phase)
-            let moon_illum = ($day.astronomy.0.moon_illumination)
-            let moon_icon = moon-icon $moon_phase $moon_illum --emoji=$emoji --text=$text
+            $day.astronomy.0.moon_phase | let moon_phase: string
+            $day.astronomy.0.moon_illumination | let moon_illum: string
+            moon-icon $moon_phase $moon_illum --emoji=$emoji --text=$text | let moon_icon: string
             
-            let condition_str = if $text { $weather_desc } else { $"($weather_icon) ($weather_desc)" }
+            let condition_str: string = if $text { $weather_desc } else { $"($weather_icon) ($weather_desc)" }
             
-            let wind_display = $"($beaufort_icon) ($wind_speed)($units.speed_label) ($wind_dir)"
+            $"($beaufort_icon) ($wind_speed)($units.speed_label) ($wind_dir)" | let wind_display: string
             
             {
                 Date: $date,
@@ -701,7 +701,6 @@ export def main [
     $data.current_condition | first | let current: record
     $data.weather | first | let weather_data: record
     $weather_data.astronomy | first | let astro: record
-    unlet $data
     
     # Dynamic extraction using the units schema
     $current | get -o $units.temp_key | default '0' | let temp_val: string
