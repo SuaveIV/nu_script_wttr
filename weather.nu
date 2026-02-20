@@ -200,21 +200,21 @@ export def main [
     --lang: string = ""             # Specify language code (e.g. 'fr', 'de', 'es', 'zh'). Empty = auto.
 ]: nothing -> any {
     # URL encode for API (handles all special chars including Unicode)
-    $city | url encode | let encoded_city
+    $city | url encode | let url_encoded_city
     
     # Display name is just the original input
     let display_city = if ($city | is-empty) { 'Auto-detect' } else { $city }
     
     # Build the full URL
-    let lang_param = if ($lang | is-empty) { '' } else { $"&lang=($lang)" }
-    let url = $"https://wttr.in/($encoded_city)?format=j1($lang_param)"
+    let language_param = if ($lang | is-empty) { '' } else { $"&lang=($lang)" }
+    let url = $"https://wttr.in/($url_encoded_city)?format=j1($language_param)"
     
     # Cache Configuration
     let base_dir = ($nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp'))
     $base_dir | path join 'nu_weather_cache' | let cache_dir
     if not ($cache_dir | path exists) { mkdir $cache_dir }
-    let lang_suffix = if ($lang | is-empty) { '' } else { $"_($lang)" }
-    let cache_file = if ($encoded_city | is-empty) { $"auto($lang_suffix).json" } else { $"($encoded_city)($lang_suffix).json" }
+    let language_suffix = if ($lang | is-empty) { '' } else { $"_($lang)" }
+    let cache_file = if ($url_encoded_city | is-empty) { $"auto($language_suffix).json" } else { $"($url_encoded_city)($language_suffix).json" }
     $cache_dir | path join $cache_file | let cache_path
     let is_cache_valid = if $force {
         false
@@ -227,7 +227,7 @@ export def main [
         print $"(ansi cyan)🔍 DEBUG MODE ENABLED(ansi reset)"
         print $"(ansi grey)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
         print $"Original input: '($city)'"
-        print $"URL encoded:    '($encoded_city)'"
+        print $"URL encoded:    '($url_encoded_city)'"
         print $"Request URL:    ($url)"
         print $"(ansi grey)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
         print $"Cache Path:     ($cache_path)"
@@ -497,7 +497,7 @@ export def main [
             temp_label: '°F', speed_label: 'mph', precip_label: 'in', vis_label: 'mi', press_label: 'inHg',
             temp_key: 'temp_F', feels_key: 'FeelsLikeF',
             speed_key: 'windspeedMiles', precip_key: 'precipInches', vis_key: 'visibilityMiles', press_key: 'pressureInches',
-            fc_max_key: 'maxtempF', fc_min_key: 'mintempF',
+            forecast_max_key: 'maxtempF', forecast_min_key: 'mintempF',
             hot_limit: 80, cold_limit: 40
         }
     } else {
@@ -505,7 +505,7 @@ export def main [
             temp_label: '°C', speed_label: 'km/h', precip_label: 'mm', vis_label: 'km', press_label: 'hPa',
             temp_key: 'temp_C', feels_key: 'FeelsLikeC',
             speed_key: 'windspeedKmph', precip_key: 'precipMM', vis_key: 'visibility', press_key: 'pressure',
-            fc_max_key: 'maxtempC', fc_min_key: 'mintempC',
+            forecast_max_key: 'maxtempC', forecast_min_key: 'mintempC',
             hot_limit: 27, cold_limit: 4
         }
     }
@@ -616,8 +616,8 @@ export def main [
         if $debug { print $"(ansi cyan)ℹ Processing 3-Day Forecast...(ansi reset)" }
         let forecast_table = ($data.weather | each {|day|
             let date = ($day.date | into datetime | format date '%a, %b %d')
-            let max_temp = ($day | get $units.fc_max_key)
-            let min_temp = ($day | get $units.fc_min_key)
+            let max_temp = ($day | get $units.forecast_max_key)
+            let min_temp = ($day | get $units.forecast_min_key)
             
             # Get noon weather for icon (approximate daily condition)
             let noon = ($day.hourly | where time == '1200' | first | default ($day.hourly | first))
@@ -773,7 +773,7 @@ export def main [
     let location_display = if $text or $raw {
         $actual_location
     } else {
-        let link_url = $"https://wttr.in/($encoded_city)"
+        let link_url = $"https://wttr.in/($url_encoded_city)"
         $link_url | ansi link --text $actual_location
     }
 
