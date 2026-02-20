@@ -46,6 +46,8 @@ Has a one-line mode for status bars, raw output for piping to other commands, an
 
 ## Installation
 
+> Nerd Font icons are enabled by default. Install a [Nerd Font](https://www.nerdfonts.com) and set it as your terminal font, or use `-e` for emojis or `-t` for plain text instead.
+
 1. Download `weather.nu`
 2. Put it in your Nushell scripts directory (`~/.config/nushell/scripts/` on Linux/Mac, `%APPDATA%\nushell\scripts\` on Windows)
 3. Add this to your `config.nu`:
