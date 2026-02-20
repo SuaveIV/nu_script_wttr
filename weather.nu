@@ -655,7 +655,7 @@ export def main [
             $day | get $units.forecast_min_key | let min_temp: string
             
             # Get noon weather for icon (approximate daily condition)
-            $day.hourly | where time == '1200' | first? | default ($day.hourly | first) | let noon: record
+            $day.hourly | where time == '1200' | append ($day.hourly | first) | first | let noon: record
             
             # Extract Wind and Rain
             $noon | get -o $units.speed_key | default '0' | let wind_speed: string
