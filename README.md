@@ -62,6 +62,17 @@ use scripts/weather.nu
 city: string = ""       # Change to your city, e.g. "New York"
 ```
 
+**Pipe to other tools** — use `--raw` and `--text` together to strip formatting for clean serialization:
+
+```nushell
+weather -3 -r -t | to json
+weather -3 -r -t | to toon                        # compact format for LLM input
+weather -r -t | to json | clipboard copy          # copy to clipboard as JSON
+```
+
+> TOON support via [fdncred/nu_plugin_toon](https://github.com/fdncred/nu_plugin_toon)  
+> Clipboard support via [fmotalleb/nu_plugin_clipboard](https://github.com/fmotalleb/nu_plugin_clipboard)
+
 ## Usage
 
 ```nushell
