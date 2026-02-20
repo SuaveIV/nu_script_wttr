@@ -67,7 +67,7 @@ weather "@github.com"      # Domain location
 
 # Display modes
 weather -3, --forecast     # 3-day forecast
-weather -h, --hourly       # Hourly breakdown (3-hour intervals)
+weather -H, --hourly       # Hourly breakdown (3-hour intervals)
 weather -a, --astro        # Sunrise, sunset, moon phase
 weather -1, --oneline      # One-line summary (for status bars)
 
@@ -84,6 +84,7 @@ weather -r, --raw          # Return raw record data (for piping)
 
 # Utility
 weather -f, --force        # Bypass cache and fetch fresh data
+weather --clear-cache      # Delete all cached weather data and exit
 weather --debug            # Show diagnostic info
 weather --test             # Use dummy data (no network request)
 ```
