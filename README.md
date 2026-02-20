@@ -54,6 +54,14 @@ Has a one-line mode for status bars, raw output for piping to other commands, an
 use scripts/weather.nu
 ```
 
+## Tips
+
+**Change the default city** — edit the `city` parameter default in `weather.nu`:
+
+```nushell
+city: string = ""       # Change to your city, e.g. "New York"
+```
+
 ## Usage
 
 ```nushell
