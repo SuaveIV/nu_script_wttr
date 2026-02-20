@@ -741,7 +741,18 @@ export def main [
     # UV Index & Sky Styling
     $current.uvIndex? | default '0' | into int | let uv: int
     
-    # UV color based on exposure level
+    let uv_label: string = if $uv >= 11 {
+        'Extreme'
+    } else if $uv >= 8 {
+        'Very High'
+    } else if $uv >= 6 {
+        'High'
+    } else if $uv >= 3 {
+        'Moderate'
+    } else {
+        'Low'
+    }
+
     let uv_color: string = if $uv >= 8 {
         'red'
     } else if $uv >= 6 {
@@ -823,7 +834,7 @@ export def main [
         Wind: $wind,
         Pressure: $pressure,
         Visibility: $vis,
-        UV: $"($icon_uv)($ansi_uv)($uv)($ansi_reset)",
+        UV: $"($icon_uv)($ansi_uv)($uv) ($uv_label)($ansi_reset)",
         Astronomy: $"($sunrise_display)(($astro.sunrise? | default 'N/A')) | ($sunset_display)(($astro.sunset? | default 'N/A')) | ($moon_display)(($astro.moon_illumination? | default '0'))%",
         Updated: $"($ansi_grey)($update_str) \(Local\) / ($utc_str) \(UTC\)($ansi_reset)"
     }
