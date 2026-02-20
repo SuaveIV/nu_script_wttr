@@ -23,7 +23,15 @@
 
 # Helper Commands
 
-def format-temp [val: any, units: record, --text]: nothing -> string {
+def format-temp [
+    val: string           # Raw temperature value from API
+    units: record<        # Unit configuration record
+        temp_label: string,
+        hot_limit: int,
+        cold_limit: int
+    >
+    --text                # Plain text mode (no ANSI color)
+]: nothing -> string {
     let temp_int = ($val | into int)
     if $text {
         $"($val)($units.temp_label)"
@@ -39,7 +47,11 @@ def format-temp [val: any, units: record, --text]: nothing -> string {
     }
 }
 
-def weather-icon [code: string, --emoji, --text]: nothing -> string {
+def weather-icon [
+    code: string          # WorldWeatherOnline weather code
+    --emoji               # Use emoji instead of Nerd Font icons
+    --text                # Plain text mode (no icons)
+]: nothing -> string {
     if $text { return "" }
     if $emoji {
         match $code {
@@ -86,7 +98,12 @@ def weather-icon [code: string, --emoji, --text]: nothing -> string {
     }
 }
 
-def moon-icon [phase: string, illum: any, --emoji, --text]: nothing -> string {
+def moon-icon [
+    phase: string         # Moon phase name from API
+    illum: string         # Moon illumination percentage as API string
+    --emoji               # Use emoji instead of Nerd Font icons
+    --text                # Plain text mode (no icons)
+]: nothing -> string {
     if $text { return "" }
     let illum_int = ($illum | into int)
     let phase_lower = ($phase | str downcase)
@@ -136,7 +153,9 @@ def moon-icon [phase: string, illum: any, --emoji, --text]: nothing -> string {
     }
 }
 
-def beaufort-scale [kmph: any]: nothing -> int {
+def beaufort-scale [
+    kmph: string          # Wind speed in km/h as API string
+]: nothing -> int {
     let k = ($kmph | into int)
     match $k {
         $x if $x < 1 => 0,
@@ -155,7 +174,11 @@ def beaufort-scale [kmph: any]: nothing -> int {
     }
 }
 
-def beaufort-icon [scale: int, --emoji, --text]: nothing -> string {
+def beaufort-icon [
+    scale: int            # Beaufort scale number
+    --emoji               # Use emoji instead of Nerd Font icons
+    --text                # Plain text mode (no icons)
+]: nothing -> string {
     if $emoji or $text {
         return $"[Bft ($scale)]"
     }
@@ -165,7 +188,11 @@ def beaufort-icon [scale: int, --emoji, --text]: nothing -> string {
     }
 }
 
-def wind-dir-icon [dir: string, --emoji, --text]: nothing -> string {
+def wind-dir-icon [
+    dir: string           # Wind direction (e.g. N, SW)
+    --emoji               # Use emoji instead of Nerd Font icons
+    --text                # Plain text mode (no icons)
+]: nothing -> string {
     if $emoji or $text {
         return $dir
     }
