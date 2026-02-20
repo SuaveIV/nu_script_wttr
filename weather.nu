@@ -224,6 +224,7 @@ export def main [
     --force (-f)                    # Bypass cache and force a network request.
     --astro (-a)                    # Show detailed astronomy data (Sunrise, Sunset, Moon phase, etc).
     --hourly (-H)                   # Show hourly forecast for today (3-hour intervals).
+    --clear-cache                   # Clear all cached weather data and exit.
     --lang: string = ""             # Specify language code (e.g. 'fr', 'de', 'es', 'zh'). Empty = auto.
 ]: nothing -> any {
     # URL encode for API (handles all special chars including Unicode)
@@ -240,6 +241,13 @@ export def main [
     $nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp') | let base_dir: string
     $base_dir | path join 'nu_weather_cache' | let cache_dir: string
     if not ($cache_dir | path exists) { mkdir $cache_dir }
+    
+    if $clear_cache {
+        rm -rf $cache_dir
+        print 'Weather cache cleared.'
+        return
+    }
+
     let language_suffix: string = if ($lang | is-empty) { '' } else { $"_($lang)" }
     let cache_file: string = if ($url_encoded_city | is-empty) { $"auto($language_suffix).json" } else { $"($url_encoded_city)($language_suffix).json" }
     $cache_dir | path join $cache_file | let cache_path: string
