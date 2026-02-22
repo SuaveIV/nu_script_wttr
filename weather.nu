@@ -23,6 +23,18 @@
 
 # Helper Commands
 
+# Formats a raw temperature value into a human-readable string with a unit label.
+#
+# Applies an ANSI colour gradient when not in plain-text mode:
+#   - Hot  (>= hot_limit)  → yellow-to-red gradient
+#   - Cold (<= cold_limit) → white-to-cyan gradient
+#   - Mild (between)       → green-to-yellow gradient
+#
+# Examples:
+#   > format-temp "72" {temp_label: "°F", hot_limit: 80, cold_limit: 40}
+#   72°F
+#   > format-temp "95" {temp_label: "°F", hot_limit: 80, cold_limit: 40} --text
+#   95°F
 def format-temp [
     val: string           # Raw temperature value from API
     units: record<        # Unit configuration record
@@ -47,6 +59,15 @@ def format-temp [
     }
 }
 
+# Returns a weather condition icon for the given WorldWeatherOnline weather code.
+#
+# Defaults to Nerd Font glyphs. Pass --emoji to use Unicode emoji instead,
+# or --text to suppress all icons (returns an empty string).
+#
+# Examples:
+#   > weather-icon "113"           # Nerd Font sunny glyph
+#   > weather-icon "389" --emoji   # ⛈️  (thunderstorm)
+#   > weather-icon "113" --text    # (empty string)
 def weather-icon [
     code: string          # WorldWeatherOnline weather code
     --emoji               # Use emoji instead of Nerd Font icons
@@ -98,6 +119,16 @@ def weather-icon [
     }
 }
 
+# Returns a moon-phase icon that best matches the given phase name and illumination.
+#
+# Phase name matching takes priority; illumination percentage is used as a fallback
+# when the phase string is unrecognised. Supports Nerd Font glyphs (default) and
+# Unicode emoji (--emoji). Pass --text to suppress all icons (returns an empty string).
+#
+# Examples:
+#   > moon-icon "Full Moon" "100"           # Nerd Font full-moon glyph
+#   > moon-icon "Waxing Crescent" "30" --emoji  # 🌒
+#   > moon-icon "Unknown" "50" --text       # (empty string)
 def moon-icon [
     phase: string         # Moon phase name from API
     illum: string         # Moon illumination percentage as API string
@@ -107,7 +138,7 @@ def moon-icon [
     if $text { return "" }
     let illum_int = ($illum | into int)
     let phase_lower = ($phase | str downcase)
-    
+
     let fallback = if $emoji {
         match $illum_int {
             $x if $x < 5 => "🌑",
@@ -153,6 +184,15 @@ def moon-icon [
     }
 }
 
+# Converts a wind speed in km/h to its Beaufort scale number (0–12).
+#
+# Uses the standard Beaufort wind force scale thresholds as defined by the
+# World Meteorological Organization.
+#
+# Examples:
+#   > beaufort-scale "0"    # 0  (Calm)
+#   > beaufort-scale "50"   # 6  (Strong Breeze)
+#   > beaufort-scale "120"  # 12 (Hurricane)
 def beaufort-scale [
     kmph: string          # Wind speed in km/h as API string
 ]: nothing -> int {
@@ -174,6 +214,15 @@ def beaufort-scale [
     }
 }
 
+# Returns an icon or bracketed label representing the given Beaufort scale number.
+#
+# In Nerd Font mode each Beaufort level maps to a distinct wind-strength glyph.
+# In emoji or plain-text mode a bracketed label such as "[Bft 6]" is returned instead.
+#
+# Examples:
+#   > beaufort-icon 0          # Nerd Font calm-wind glyph
+#   > beaufort-icon 6 --emoji  # [Bft 6]
+#   > beaufort-icon 6 --text   # [Bft 6]
 def beaufort-icon [
     scale: int            # Beaufort scale number
     --emoji               # Use emoji instead of Nerd Font icons
@@ -188,6 +237,15 @@ def beaufort-icon [
     }
 }
 
+# Returns a directional arrow icon for the given cardinal or intercardinal wind direction.
+#
+# In Nerd Font mode each compass point maps to a directional arrow glyph.
+# In emoji or plain-text mode the raw direction string (e.g. "SW") is returned unchanged.
+#
+# Examples:
+#   > wind-dir-icon "N"           # Nerd Font north-arrow glyph
+#   > wind-dir-icon "SW" --emoji  # SW
+#   > wind-dir-icon "E" --text    # E
 def wind-dir-icon [
     dir: string           # Wind direction (e.g. N, SW)
     --emoji               # Use emoji instead of Nerd Font icons
@@ -209,6 +267,31 @@ def wind-dir-icon [
     }
 }
 
+# Fetches and displays weather information from wttr.in with rich formatting.
+#
+# Retrieves current conditions, hourly forecasts, 3-day forecasts, and astronomy
+# data for any location. Units (Imperial/Metric) are selected automatically based
+# on the location's country, or can be forced with --imperial / --metric.
+# Results are cached for 15 minutes; use --force to bypass the cache.
+#
+# Data provided by wttr.in (https://github.com/chubin/wttr.in).
+#
+# Examples:
+#   > weather                      # Current weather, auto-detected location
+#   > weather "New York"           # Current weather for a specific city
+#   > weather "Paris, France"      # City and country
+#   > weather "JFK"                # Airport code
+#   > weather "~Eiffel Tower"      # Approximate / landmark location
+#   > weather "@github.com"        # Domain-based location lookup
+#   > weather --forecast           # 3-day forecast
+#   > weather --hourly             # Hourly breakdown for today
+#   > weather --astro              # Sunrise, sunset, moon phase
+#   > weather --lang fr            # Output in French
+#   > weather --emoji              # Use emoji icons instead of Nerd Fonts
+#   > weather --text               # Plain text, no icons or colours
+#   > weather --raw                # Return a record (pipeable)
+#   > weather --json               # Return the raw wttr.in API response
+#   > weather --debug              # Print network and parsing diagnostics
 export def main [
     city: string = ""               # The location to fetch weather for. Leave empty to auto-detect.
     --raw (-r)                      # Return raw record data instead of a formatted table (useful for piping).
@@ -229,19 +312,19 @@ export def main [
 ]: nothing -> any {
     # URL encode for API (handles all special chars including Unicode)
     $city | url encode | let url_encoded_city: string
-    
+
     # Display name is just the original input
     let display_city: string = if ($city | is-empty) { 'Auto-detect' } else { $city }
-    
+
     # Build the full URL
     let language_param: string = if ($lang | is-empty) { '' } else { $"&lang=($lang)" }
     $"https://wttr.in/($url_encoded_city)?format=j1($language_param)" | let url: string
-    
+
     # Cache Configuration
     $nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp') | let base_dir: string
     $base_dir | path join 'nu_weather_cache' | let cache_dir: string
     if not ($cache_dir | path exists) { mkdir $cache_dir }
-    
+
     if $clear_cache {
         rm -rf $cache_dir
         print 'Weather cache cleared.'
@@ -272,7 +355,7 @@ export def main [
         print $"Unit Override:  (if $metric { 'Metric' } else if $imperial { 'Imperial' } else { 'Auto' })"
         print $"View Mode:      (if $hourly { 'Hourly' } else if $astro { 'Astronomy' } else if $forecast { 'Forecast' } else { 'Current' })"
         print ""
-        
+
         if not $test {
             # Test basic connectivity first
             print 'Testing basic connectivity...'
@@ -285,7 +368,7 @@ export def main [
                 print $"  Error: ($err.msg)"
                 false
             }
-            
+
             if not $connectivity_test {
                 print ""
                 print $"(ansi yellow)Connectivity test failed. Possible causes:(ansi reset)"
@@ -301,28 +384,28 @@ export def main [
                 }
             }
         }
-        
+
         print ""
         print 'Attempting weather data fetch...'
     }
-    
+
     # Fetch weather data with proper error handling
     let response: record = if $test {
         if $debug {
             print $"(ansi yellow)⚠ USING DUMMY TEST DATA(ansi reset)"
             print 'Skipping network request...'
         }
-        
+
         # Toggle between Metric/Imperial based on input for testing
-        let use_imperial = if $imperial { 
-            true 
-        } else if $metric { 
-            false 
+        let use_imperial = if $imperial {
+            true
+        } else if $metric {
+            false
         } else {
             ($city | str downcase | str contains 'imperial') or ($city | str downcase | str contains 'united states') or ($city | str downcase | str contains 'carrollton')
         }
         let test_country = if $use_imperial { 'United States' } else { 'Testland' }
-        
+
         {
             current_condition: [{
                 temp_F: '72', temp_C: '22',
@@ -428,7 +511,7 @@ export def main [
                 print $"(ansi red_bold)━━━ REQUEST FAILED ━━━(ansi reset)"
                 print $"Error type: ($err | describe)"
                 print $"Error message: ($err.msg)"
-                
+
                 if ($err.msg | str contains 'json') {
                     print ""
                     print $"(ansi yellow)Debug: Response might not be valid JSON(ansi reset)"
@@ -437,7 +520,7 @@ export def main [
                     print '  2. Location not found (404)'
                     print '  3. Service is down or rate limiting'
                 }
-                
+
                 if ($err.msg | str contains 'timeout') or ($err.msg | str contains 'time') {
                     print ""
                     print $"(ansi yellow)Debug: Request timed out(ansi reset)"
@@ -446,14 +529,14 @@ export def main [
                     print '  2. wttr.in service is slow/overloaded'
                     print '  3. Connection being throttled'
                 }
-                
+
                 print $"(ansi red_bold)━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
                 print ""
             }
-            
+
             # Check if it's a 404 (location not found) vs actual network error
             let error_msg = $err.msg
-            
+
             if ($error_msg | str contains '404') or ($error_msg | str contains 'Not Found') {
                 error make {
                     msg: $"Location not found: '($display_city)'"
@@ -467,15 +550,15 @@ export def main [
             }
         }
     }
-    
+
     if $debug {
         print $"(ansi green)✓ Request successful(ansi reset)"
         print $"Response type: ($response | describe)"
         print ""
     }
-    
+
     let data: record = $response
-    
+
     # Validate response structure
     if ($data.current_condition? | is-empty) {
         if $debug {
@@ -488,13 +571,13 @@ export def main [
             print $"(ansi red_bold)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
             print ""
         }
-        
+
         error make {
             msg: $"No weather data found for '($display_city)'"
             help: "The location may not be recognized by wttr.in"
         }
     }
-    
+
     if $debug {
         print $"(ansi green)✓ Data validation passed(ansi reset)"
         print 'Response contains valid weather data'
@@ -505,24 +588,24 @@ export def main [
         if $debug { print $"(ansi cyan)ℹ Returning raw JSON data...(ansi reset)" }
         return $data
     }
-    
+
     # Common data extraction
     $data.nearest_area | first | let nearest: record
-    
+
     # Get location info (wttr.in provides this in nearest_area)
     $nearest.areaName?.0?.value? | default $display_city | let area_name: string
     $nearest.region?.0?.value? | default '' | let region: string
     $nearest.country?.0?.value? | default 'Unknown' | let country_val: string
     $country_val | str downcase | let country: string
-    
+
     # Determine units based on country
     # Priority: Force Imperial > Force Metric > Country detection
-    let is_us: bool = if $imperial { 
-        true 
-    } else if $metric { 
-        false 
-    } else { 
-        ($country | str contains 'united states') 
+    let is_us: bool = if $imperial {
+        true
+    } else if $metric {
+        false
+    } else {
+        ($country | str contains 'united states')
     }
 
     # Define unit-specific configuration (Nushell Idiom: Data over Control Flow)
@@ -556,16 +639,16 @@ export def main [
     if $astro {
         if $debug { print $"(ansi cyan)ℹ Processing Astronomy Data...(ansi reset)" }
         $data.weather | first | get astronomy | first | let current_astro: record
-        
+
         $current_astro.moon_phase | let moon_phase: string
         $current_astro.moon_illumination | let moon_illum: string
         moon-icon $moon_phase $moon_illum --emoji=$emoji --text=$text | let moon_icon: string
-        
+
         let sunrise_icon: string = if $text { '' } else if $emoji { '🌅 ' } else { " " } # nf-weather-sunrise
         let sunset_icon: string = if $text { '' } else if $emoji { '🌇 ' } else { " " } # nf-weather-sunset
         let moonrise_icon: string = if $text { '' } else if $emoji { "☾↑ " } else { " " } # nf-weather-moonrise
         let moonset_icon: string = if $text { '' } else if $emoji { "☾↓ " } else { " " } # nf-weather-moonset
-        
+
         let output: record = {
             "Sunrise": $"($sunrise_icon)($current_astro.sunrise)",
             "Sunset": $"($sunset_icon)($current_astro.sunset)",
@@ -574,7 +657,7 @@ export def main [
             "Moon Phase": $"($moon_icon) ($moon_phase)",
             "Illumination": $"($moon_illum)%"
         }
-        
+
         if $raw {
             return $current_astro
         } else {
@@ -587,7 +670,7 @@ export def main [
     if $hourly {
         if $debug { print $"(ansi cyan)ℹ Processing Hourly Forecast...(ansi reset)" }
         $data.weather | first | let today: record
-        
+
         # Define icons for hourly table
         let icon_snow: string = if $text { '' } else if $emoji { '❄ ' } else { " " }
         let icon_rain: string = if $text { '' } else if $emoji { '☔ ' } else { " " }
@@ -597,16 +680,16 @@ export def main [
             # Format time (e.g., "1200" -> "12:00")
             $hour.time | into string | fill -a r -w 4 -c '0' | let t_str: string
             $"($t_str | str substring 0..1):($t_str | str substring 2..3)" | let time_display: string
-            
+
             # Extract Temp (Note: hourly uses tempF/tempC, not temp_F/temp_C)
             let temp: string = if $is_us { ($hour.tempF? | default '0') } else { ($hour.tempC? | default '0') }
             let feels: string = if $is_us { ($hour.FeelsLikeF? | default '0') } else { ($hour.FeelsLikeC? | default '0') }
-            
+
             # Icons
             $hour.weatherCode? | default '113' | let weather_code: string
             $hour.weatherDesc?.0?.value? | default 'Unknown' | let weather_desc: string
             weather-icon $weather_code --emoji=$emoji --text=$text | let weather_icon: string
-            
+
             # Wind
             $hour | get -o $units.speed_key | default '0' | let wind_speed: string
             $hour.windspeedKmph? | default '0' | let wind_k: string
@@ -614,14 +697,14 @@ export def main [
             beaufort-icon $beaufort_scale --emoji=$emoji --text=$text | let beaufort_icon: string
             $hour.winddir16Point? | default 'N' | let wind_dir_str: string
             wind-dir-icon $wind_dir_str --emoji=$emoji --text=$text | let wind_dir: string
-            
+
             $"($beaufort_icon) ($wind_speed)($units.speed_label) ($wind_dir)" | let wind_display: string
-            
+
             # Precip / Chance
             $hour | get -o $units.precip_key | default '0.0' | let precip_val: string
             $hour.chanceofrain? | default '0' | let chance_rain: string
             $hour.chanceofsnow? | default '0' | let chance_snow: string
-            
+
             let precip_display: string = if ($chance_snow | into int) > 0 {
                 $"($icon_snow)($chance_snow)% / ($precip_val)($units.precip_label)"
             } else {
@@ -653,33 +736,33 @@ export def main [
             $day.date | into datetime | format date '%a, %b %d' | let date: string
             $day | get $units.forecast_max_key | let max_temp: string
             $day | get $units.forecast_min_key | let min_temp: string
-            
+
             # Get noon weather for icon (approximate daily condition)
             $day.hourly | where time == '1200' | append ($day.hourly | first) | first | let noon: record
-            
+
             # Extract Wind and Rain
             $noon | get -o $units.speed_key | default '0' | let wind_speed: string
             $noon.windspeedKmph? | default '0' | let wind_k: string
             beaufort-scale $wind_k | let beaufort_scale: int
             beaufort-icon $beaufort_scale --emoji=$emoji --text=$text | let beaufort_icon: string
-            
+
             $noon.winddir16Point? | default 'N' | let wind_dir_str: string
             wind-dir-icon $wind_dir_str --emoji=$emoji --text=$text | let wind_dir: string
             $noon | get -o $units.precip_key | default '0.0' | let precip_val: string
-            
+
             $noon.weatherCode? | default '113' | let weather_code: string
             $noon.weatherDesc?.0?.value? | default 'Unknown' | let weather_desc: string
             weather-icon $weather_code --emoji=$emoji --text=$text | let weather_icon: string
-            
+
             # Moon for forecast
             $day.astronomy.0.moon_phase | let moon_phase: string
             $day.astronomy.0.moon_illumination | let moon_illum: string
             moon-icon $moon_phase $moon_illum --emoji=$emoji --text=$text | let moon_icon: string
-            
+
             let condition_str: string = if $text { $weather_desc } else { $"($weather_icon) ($weather_desc)" }
-            
+
             $"($beaufort_icon) ($wind_speed)($units.speed_label) ($wind_dir)" | let wind_display: string
-            
+
             {
                 Date: $date,
                 Condition: $condition_str,
@@ -692,7 +775,7 @@ export def main [
                 Sunset: ($day.astronomy.0.sunset)
             }
         })
-        
+
         if $raw {
             return $forecast_table
         } else {
@@ -704,12 +787,12 @@ export def main [
             return ($forecast_table | table -i false)
         }
     }
-    
+
     # Safe data extraction for Current Weather
     $data.current_condition | first | let current: record
     $data.weather | first | let weather_data: record
     $weather_data.astronomy | first | let astro: record
-    
+
     # Dynamic extraction using the units schema
     $current | get -o $units.temp_key | default '0' | let temp_val: string
     $current | get -o $units.feels_key | default '0' | let feels_val: string
@@ -732,7 +815,7 @@ export def main [
     $current | get -o $units.speed_key | default '0' | let wind_speed: string
     $current.winddir16Point? | default 'N' | let wind_dir_str: string
     wind-dir-icon $wind_dir_str --emoji=$emoji --text=$text | let wind_dir: string
-    
+
     $"($icon_wind)($wind_speed)($units.speed_label) ($wind_dir)" | let wind: string
     $"($icon_rain)(($current | get -o $units.precip_key | default '0.0'))($units.precip_label)" | let precip: string
     $"($icon_vis)(($current | get -o $units.vis_key | default '0'))($units.vis_label)" | let vis: string
@@ -740,7 +823,7 @@ export def main [
 
     # UV Index & Sky Styling
     $current.uvIndex? | default '0' | into int | let uv: int
-    
+
     let uv_label: string = if $uv >= 11 {
         'Extreme'
     } else if $uv >= 8 {
@@ -781,21 +864,21 @@ export def main [
     # 227 (Blowing snow), 230 (Blizzard), 386/389/392/395 (Thunderstorms)
     let severe_codes: list<string> = ['227' '230' '386' '389' '392' '395']
     let is_severe: bool = ($weather_code in $severe_codes)
-    
+
     let alert_icon: string = if $is_severe {
         if $text { ' [SEVERE]' } else if $emoji { ' ⚠️' } else { ' ' } # nf-weather-storm_warning
     } else { '' }
 
     # Get weather description for additional context
     $current.weatherDesc?.0?.value? | default 'Unknown' | let weather_desc: string
-    
+
     # ENHANCED MOON PHASE EMOJI
     # More precise matching with moon illumination
     $astro.moon_phase? | default 'Unknown' | str downcase | let moon_phase: string
     $astro.moon_illumination? | default '0' | let moon_illum: string
-    
+
     moon-icon $moon_phase $moon_illum --emoji=$emoji --text=$text | let moon_icon: string
-    
+
     let moon_display: string = if $text { 'Moon: ' } else { $"($moon_icon) " }
     let sunrise_display: string = if $text { 'Sunrise: ' } else if $emoji { '🌅 ' } else { " " } # nf-weather-sunrise
     let sunset_display: string = if $text { 'Sunset: ' } else if $emoji { '🌇 ' } else { " " } # nf-weather-sunset
@@ -846,7 +929,7 @@ export def main [
         Astronomy: $"($sunrise_display)(($astro.sunrise? | default 'N/A')) | ($sunset_display)(($astro.sunset? | default 'N/A')) | ($moon_display)(($astro.moon_illumination? | default '0'))%",
         Updated: $"($ansi_grey)($update_str) \(Local\) / ($utc_str) \(UTC\)($ansi_reset)"
     }
-    
+
     if $debug {
         print $"(ansi green)✓ All data extracted successfully(ansi reset)"
         print $"  Location: ($actual_location)"
@@ -859,12 +942,12 @@ export def main [
         print $"(ansi grey)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
         print ""
     }
-    
+
     if $oneline {
         let oneline_emoji: string = if $text { '' } else { $"($weather_icon) " }
         return $"($actual_location): ($oneline_emoji)($temp_val)($units.temp_label) - ($weather_desc)"
     }
-    
+
     if $raw {
         $output
     } else {
