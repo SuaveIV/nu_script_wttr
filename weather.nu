@@ -21,6 +21,11 @@
 #   > weather --lang fr           t # Weather in French
 #   > weather --debug             # Run with diagnostic info
 
+const COL_FULL_WIDTH = 100
+const COL_COMPACT_WIDTH = 80
+const COL_MINIMAL_WIDTH = 60
+const COL_ONELINE_WIDTH = 0
+
 # Helper Commands
 
 # Formats a raw temperature value into a human-readable string with a unit label.
@@ -490,6 +495,8 @@ export def main [
     --imperial (-i)                 # Force imperial units (°F, mph) regardless of location.
     --forecast (-3)                 # Show weather forecast for the next 3 days.
     --oneline (-1)                  # Show a single line summary (e.g. for status bars).
+    --compact (-c)                  # Force compact output (drops Pressure, Visibility, Clouds, Updated).
+    --minimal (-M)                  # Force minimal output (also drops UV, Humidity, Feels).
     --json (-j)                     # Return the full raw API response as data.
     --emoji (-e)                    # Use Emojis instead of Nerd Font icons (Default is Nerd Fonts).
     --text (-t)                     # Plain text output (no icons, no colors).
@@ -919,14 +926,39 @@ export def main [
         print ""
     }
 
-    if $oneline {
+    if $raw {
+        return $output
+    }
+
+    let term_width = (term size).columns
+
+    let tier = if $oneline {
+        "oneline"
+    } else if $minimal {
+        "minimal"
+    } else if $compact {
+        "compact"
+    } else if $term_width >= $COL_FULL_WIDTH {
+        "full"
+    } else if $term_width >= $COL_COMPACT_WIDTH {
+        "compact"
+    } else if $term_width >= $COL_MINIMAL_WIDTH {
+        "minimal"
+    } else {
+        "oneline"
+    }
+
+    if $tier == "oneline" {
         let oneline_emoji: string = if $icon_mode == 'text' { '' } else { $"($weather_icon) " }
         return $"($actual_location): ($oneline_emoji)($temp_val)($units.temp_label) - ($weather_desc)"
     }
 
-    if $raw {
-        $output
-    } else {
-        $output | table -i false
+    let final_output = match $tier {
+        "full" => $output,
+        "compact" => ($output | reject Pressure Visibility Clouds Updated),
+        "minimal" => ($output | reject Pressure Visibility Clouds Updated UV Humidity Feels),
+        _ => $output
     }
+
+    $final_output | table -i false
 }
