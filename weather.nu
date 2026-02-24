@@ -306,6 +306,67 @@ def http-get-with-retry [
     }
 }
 
+# Builds the astronomy display data.
+def build-astro-display [astro: record, loc: string, mode: string, --raw]: nothing -> any {
+    let moon_icon = (moon-icon $astro.moon_phase $astro.moon_illumination $mode)
+    let s_icon = if $mode == 'emoji' { '🌅 ' } else if $mode == 'nerd' { " " } else { '' }
+    let t_icon = if $mode == 'emoji' { '🌇 ' } else if $mode == 'nerd' { " " } else { '' }
+
+    let output = {
+        "Sunrise": $"($s_icon)($astro.sunrise)",
+        "Sunset": $"($t_icon)($astro.sunset)",
+        "Moon Phase": $"($moon_icon) ($astro.moon_phase)",
+        "Illumination": $"($astro.moon_illumination)%"
+    }
+
+    if $raw { $astro } else {
+        print $"(ansi cyan_bold)Astronomy for ($loc)(ansi reset)"
+        $output | table -i false
+    }
+}
+
+# Builds the hourly forecast display data.
+def build-hourly-display [today: record, units: record, loc: string, mode: string, --raw, --debug]: nothing -> any {
+    if $debug { print $"(ansi cyan)ℹ Processing Hourly Forecast...(ansi reset)" }
+    let hourly_table = ($today.hourly | compact | each {|hour|
+        let t_str = ($hour.time | fill -a r -w 4 -c '0')
+        let is_us = ($units.temp_label == '°F')
+        let temp = if $is_us { $hour.tempF } else { $hour.tempC }
+
+        {
+            Time: $"($t_str | str substring 0..1):($t_str | str substring 2..3)",
+            Condition: (if $mode == 'text' { $hour.weatherDesc.0.value } else { $"((weather-icon $hour.weatherCode $mode)) ($hour.weatherDesc.0.value)" }),
+            Temp: (format-temp $temp $units --text=($mode == 'text')),
+            Wind: $"((wind-dir-icon $hour.winddir16Point $mode)) ($hour | get $units.speed_key)($units.speed_label)",
+            Humidity: $"($hour.humidity)%"
+        }
+    })
+
+    if $raw { $hourly_table } else {
+        print $"(ansi cyan_bold)Hourly Forecast for ($loc)(ansi reset)"
+        $hourly_table | table -i false
+    }
+}
+
+# Builds the 3-day forecast display data.
+def build-forecast-display [weather: list<any>, units: record, loc: string, mode: string, --raw]: nothing -> any {
+    let forecast_table = ($weather | compact | each {|day|
+        let noon = ($day.hourly | where time == '1200' | append ($day.hourly | first) | first)
+        {
+            Date: ($day.date | into datetime | format date '%a, %b %d'),
+            High: (format-temp ($day | get $units.forecast_max_key) $units --text=($mode == 'text')),
+            Low: (format-temp ($day | get $units.forecast_min_key) $units --text=($mode == 'text')),
+            Condition: (if $mode == 'text' { $noon.weatherDesc.0.value } else { $"((weather-icon $noon.weatherCode $mode)) ($noon.weatherDesc.0.value)" }),
+            Rain: $"($noon | get $units.precip_key)($units.precip_label)"
+        }
+    })
+
+    if $raw { $forecast_table } else {
+        print $"(ansi cyan_bold)3-Day Forecast for ($loc)(ansi reset)"
+        $forecast_table | table -i false
+    }
+}
+
 # Fetches and displays weather information from wttr.in with rich formatting.
 #
 # Retrieves current conditions, hourly forecasts, 3-day forecasts, and astronomy
@@ -682,157 +743,20 @@ export def main [
         $"($area_name), ($country_val)"
     }
 
-    # Handle Astronomy Mode
+    # Astronomy View
     if $astro {
-        if $debug { print $"(ansi cyan)ℹ Processing Astronomy Data...(ansi reset)" }
-        $data.weather | first | get astronomy | first | let current_astro: record
-
-        $current_astro.moon_phase | let moon_phase: string
-        $current_astro.moon_illumination | let moon_illum: string
-        moon-icon $moon_phase $moon_illum $icon_mode | let moon_icon: string
-
-        let sunrise_icon: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌅 ' } else { " " } # nf-weather-sunrise
-        let sunset_icon: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌇 ' } else { " " } # nf-weather-sunset
-        let moonrise_icon: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { "☾↑ " } else { " " } # nf-weather-moonrise
-        let moonset_icon: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { "☾↓ " } else { " " } # nf-weather-moonset
-
-        let output: record = {
-            "Sunrise": $"($sunrise_icon)($current_astro.sunrise)",
-            "Sunset": $"($sunset_icon)($current_astro.sunset)",
-            "Moonrise": $"($moonrise_icon)($current_astro.moonrise)",
-            "Moonset": $"($moonset_icon)($current_astro.moonset)",
-            "Moon Phase": $"($moon_icon) ($moon_phase)",
-            "Illumination": $"($moon_illum)%"
-        }
-
-        if $raw {
-            return $current_astro
-        } else {
-            if $icon_mode != 'text' { print $"(ansi cyan_bold)Astronomy for ($actual_location)(ansi reset)" } else { print $"Astronomy for ($actual_location)" }
-            return ($output | table -i false)
-        }
+        let current_astro = ($data.weather | first | get astronomy | first)
+        return (build-astro-display $current_astro $actual_location $icon_mode --raw=$raw)
     }
 
-    # Handle Hourly Mode
+    # Hourly View
     if $hourly {
-        if $debug { print $"(ansi cyan)ℹ Processing Hourly Forecast...(ansi reset)" }
-        $data.weather | first | let today: record
-
-        # Define icons for hourly table
-        let icon_snow: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '❄ ' } else { " " }
-        let icon_rain: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☔ ' } else { " " }
-        let icon_humid: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '💧 ' } else { " " }
-
-        let hourly_table: list<record> = ($today.hourly | compact | each {|hour|
-            # Format time (e.g., "1200" -> "12:00")
-            $hour.time | into string | fill -a r -w 4 -c '0' | let t_str: string
-            $"($t_str | str substring 0..1):($t_str | str substring 2..3)" | let time_display: string
-
-            # Extract Temp (Note: hourly uses tempF/tempC, not temp_F/temp_C)
-            let temp: string = if $is_us { ($hour.tempF? | default '0') } else { ($hour.tempC? | default '0') }
-            let feels: string = if $is_us { ($hour.FeelsLikeF? | default '0') } else { ($hour.FeelsLikeC? | default '0') }
-
-            # Icons
-            $hour.weatherCode? | default '113' | let weather_code: string
-            $hour.weatherDesc?.0?.value? | default 'Unknown' | let weather_desc: string
-            weather-icon $weather_code $icon_mode | let weather_icon: string
-
-            # Wind
-            $hour | get -o $units.speed_key | default '0' | let wind_speed: string
-            $hour.windspeedKmph? | default '0' | let wind_k: string
-            beaufort-scale $wind_k | let beaufort_scale: int
-            beaufort-icon $beaufort_scale $icon_mode | let beaufort_icon: string
-            $hour.winddir16Point? | default 'N' | let wind_dir_str: string
-            wind-dir-icon $wind_dir_str $icon_mode | let wind_dir: string
-
-            $"($beaufort_icon) ($wind_speed)($units.speed_label) ($wind_dir)" | let wind_display: string
-
-            # Precip / Chance
-            $hour | get -o $units.precip_key | default '0.0' | let precip_val: string
-            $hour.chanceofrain? | default '0' | let chance_rain: string
-            $hour.chanceofsnow? | default '0' | let chance_snow: string
-
-            let precip_display: string = if ($chance_snow | into int) > 0 {
-                $"($icon_snow)($chance_snow)% / ($precip_val)($units.precip_label)"
-            } else {
-                $"($icon_rain)($chance_rain)% / ($precip_val)($units.precip_label)"
-            }
-
-            let condition_str: string = if $icon_mode == 'text' { $weather_desc } else { $"($weather_icon) ($weather_desc)" }
-
-            {
-                Time: $time_display,
-                Condition: $condition_str,
-                Temp: (format-temp $temp $units --text=($icon_mode == 'text')),
-                Feels: (format-temp $feels $units --text=($icon_mode == 'text')),
-                Precip: $precip_display,
-                Wind: $wind_display,
-                Humidity: $"($icon_humid)(($hour.humidity? | default '0'))%"
-            }
-        })
-
-        if $raw { return $hourly_table }
-        if $icon_mode != 'text' { print $"(ansi cyan_bold)Hourly Forecast for ($actual_location)(ansi reset)" } else { print $"Hourly Forecast for ($actual_location)" }
-        return ($hourly_table | table -i false)
+        return (build-hourly-display ($data.weather | first) $units $actual_location $icon_mode --raw=$raw --debug=$debug)
     }
 
-    # Handle Forecast Mode
+    # Forecast View
     if $forecast {
-        if $debug { print $"(ansi cyan)ℹ Processing 3-Day Forecast...(ansi reset)" }
-        let forecast_table: list<record> = ($data.weather | compact | each {|day|
-            $day.date | into datetime | format date '%a, %b %d' | let date: string
-            $day | get $units.forecast_max_key | let max_temp: string
-            $day | get $units.forecast_min_key | let min_temp: string
-
-            # Get noon weather for icon (approximate daily condition)
-            $day.hourly | where time == '1200' | append ($day.hourly | first) | first | let noon: record
-
-            # Extract Wind and Rain
-            $noon | get -o $units.speed_key | default '0' | let wind_speed: string
-            $noon.windspeedKmph? | default '0' | let wind_k: string
-            beaufort-scale $wind_k | let beaufort_scale: int
-            beaufort-icon $beaufort_scale $icon_mode | let beaufort_icon: string
-
-            $noon.winddir16Point? | default 'N' | let wind_dir_str: string
-            wind-dir-icon $wind_dir_str $icon_mode | let wind_dir: string
-            $noon | get -o $units.precip_key | default '0.0' | let precip_val: string
-
-            $noon.weatherCode? | default '113' | let weather_code: string
-            $noon.weatherDesc?.0?.value? | default 'Unknown' | let weather_desc: string
-            weather-icon $weather_code $icon_mode | let weather_icon: string
-
-            # Moon for forecast
-            $day.astronomy.0.moon_phase | let moon_phase: string
-            $day.astronomy.0.moon_illumination | let moon_illum: string
-            moon-icon $moon_phase $moon_illum $icon_mode | let moon_icon: string
-
-            let condition_str: string = if $icon_mode == 'text' { $weather_desc } else { $"($weather_icon) ($weather_desc)" }
-
-            $"($beaufort_icon) ($wind_speed)($units.speed_label) ($wind_dir)" | let wind_display: string
-
-            {
-                Date: $date,
-                Condition: $condition_str,
-                High: (format-temp $max_temp $units --text=($icon_mode == 'text')),
-                Low: (format-temp $min_temp $units --text=($icon_mode == 'text')),
-                Rain: $"($precip_val)($units.precip_label)",
-                Wind: $wind_display,
-                Moon: $"($moon_icon) ($moon_phase)",
-                Sunrise: ($day.astronomy.0.sunrise),
-                Sunset: ($day.astronomy.0.sunset)
-            }
-        })
-
-        if $raw {
-            return $forecast_table
-        } else {
-            if $icon_mode == 'text' {
-                print $"Forecast for ($actual_location)"
-            } else {
-                print $"(ansi cyan_bold)Forecast for ($actual_location)(ansi reset)"
-            }
-            return ($forecast_table | table -i false)
-        }
+        return (build-forecast-display $data.weather $units $actual_location $icon_mode --raw=$raw)
     }
 
     # Safe data extraction for Current Weather
