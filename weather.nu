@@ -288,6 +288,28 @@ def is-cache-valid [
     } else { false }
 }
 
+# Performs an HTTP GET request with retry logic and backoff.
+def http-get-with-retry [
+    url: string
+    max_retries: int = 3
+    timeout: duration = 10sec
+]: nothing -> any {
+    mut attempt = 0
+    loop {
+        let error_record = try {
+            return (http get $url -m $timeout)
+        } catch {|e|
+            $e
+        }
+
+        if $attempt >= $max_retries {
+            error make { msg: $error_record.msg }
+        }
+        $attempt = $attempt + 1
+        sleep (($attempt * 200) * 1ms)
+    }
+}
+
 # Fetches and displays weather information from wttr.in with rich formatting.
 #
 # Retrieves current conditions, hourly forecasts, 3-day forecasts, and astronomy
@@ -520,7 +542,7 @@ export def main [
             if $debug {
                 print $"(ansi grey)Sending request...(ansi reset)"
             }
-            let res = (http get $url)
+            let res = (http-get-with-retry $url)
             $res | save -f $cache_path
             $res
         } catch {|err|
