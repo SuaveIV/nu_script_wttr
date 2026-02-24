@@ -367,6 +367,95 @@ def build-forecast-display [weather: list<any>, units: record, loc: string, mode
     }
 }
 
+# Returns dummy weather data for testing purposes.
+def test-data [use_imperial: bool]: nothing -> record {
+    let test_country = if $use_imperial { 'United States' } else { 'Testland' }
+
+    {
+        current_condition: [{
+            temp_F: '72', temp_C: '22',
+            FeelsLikeF: '70', FeelsLikeC: '21',
+            windspeedMiles: '15', windspeedKmph: '24',
+            precipInches: '0.1', precipMM: '2.5',
+            visibilityMiles: '5', visibility: '8',
+            pressureInches: '29.9', pressure: '1012',
+            uvIndex: '6',
+            weatherCode: '389', # Severe Thunderstorm code
+            weatherDesc: [{value: 'Thunderstorm (Test)'}],
+            localObsDateTime: '2023-10-27 12:00 PM',
+            observation_time: '04:00 PM',
+            cloudcover: '75',
+            humidity: '80',
+            winddir16Point: 'SE'
+        }],
+        weather: [{
+            astronomy: [{
+                sunrise: '06:30 AM',
+                sunset: '07:45 PM',
+                moonrise: '07:00 PM',
+                moonset: '05:00 AM',
+                moon_illumination: '10',
+                moon_phase: 'Waxing Crescent'
+            }],
+            date: '2023-10-27',
+            maxtempC: '25', maxtempF: '77',
+            mintempC: '15', mintempF: '59',
+            hourly: [{
+                weatherCode: '113', weatherDesc: [{value: 'Sunny'}], time: '1200',
+                windspeedMiles: '5', windspeedKmph: '8', winddir16Point: 'NW',
+                precipInches: '0.0', precipMM: '0.0',
+                tempC: '25', tempF: '77', FeelsLikeC: '26', FeelsLikeF: '79',
+                chanceofrain: '0', chanceofsnow: '0', humidity: '40'
+            }]
+        },
+        {
+            astronomy: [{
+                sunrise: '06:31 AM',
+                sunset: '07:44 PM',
+                moonrise: '07:45 PM',
+                moonset: '06:00 AM',
+                moon_illumination: '50',
+                moon_phase: 'First Quarter'
+            }],
+            date: '2023-10-28',
+            maxtempC: '2', maxtempF: '35',
+            mintempC: '-2', mintempF: '28',
+            hourly: [{
+                weatherCode: '338', weatherDesc: [{value: 'Heavy Snow'}], time: '1200',
+                windspeedMiles: '20', windspeedKmph: '32', winddir16Point: 'N',
+                precipInches: '0.5', precipMM: '12.0',
+                tempC: '0', tempF: '32', FeelsLikeC: '-5', FeelsLikeF: '23',
+                chanceofrain: '0', chanceofsnow: '90', humidity: '85'
+            }]
+        },
+        {
+            astronomy: [{
+                sunrise: '06:32 AM',
+                sunset: '07:43 PM',
+                moonrise: '08:30 PM',
+                moonset: '07:00 AM',
+                moon_illumination: '100',
+                moon_phase: 'Full Moon'
+            }],
+            date: '2023-10-29',
+            maxtempC: '10', maxtempF: '50',
+            mintempC: '5', mintempF: '41',
+            hourly: [{
+                weatherCode: '248', weatherDesc: [{value: 'Fog'}], time: '1200',
+                windspeedMiles: '0', windspeedKmph: '0', winddir16Point: 'E',
+                precipInches: '0.0', precipMM: '0.0',
+                tempC: '10', tempF: '50', FeelsLikeC: '10', FeelsLikeF: '50',
+                chanceofrain: '10', chanceofsnow: '0', humidity: '95'
+            }]
+        }],
+        nearest_area: [{
+            areaName: [{value: 'Test City'}],
+            region: [{value: 'Test Region'}],
+            country: [{value: $test_country}]
+        }]
+    }
+}
+
 # Fetches and displays weather information from wttr.in with rich formatting.
 #
 # Retrieves current conditions, hourly forecasts, 3-day forecasts, and astronomy
@@ -512,91 +601,7 @@ export def main [
         } else {
             ($city | str downcase | str contains 'imperial') or ($city | str downcase | str contains 'united states') or ($city | str downcase | str contains 'carrollton')
         }
-        let test_country = if $use_imperial { 'United States' } else { 'Testland' }
-
-        {
-            current_condition: [{
-                temp_F: '72', temp_C: '22',
-                FeelsLikeF: '70', FeelsLikeC: '21',
-                windspeedMiles: '15', windspeedKmph: '24',
-                precipInches: '0.1', precipMM: '2.5',
-                visibilityMiles: '5', visibility: '8',
-                pressureInches: '29.9', pressure: '1012',
-                uvIndex: '6',
-                weatherCode: '389', # Severe Thunderstorm code
-                weatherDesc: [{value: 'Thunderstorm (Test)'}],
-                localObsDateTime: '2023-10-27 12:00 PM',
-                observation_time: '04:00 PM',
-                cloudcover: '75',
-                humidity: '80',
-                winddir16Point: 'SE'
-            }],
-            weather: [{
-                astronomy: [{
-                    sunrise: '06:30 AM',
-                    sunset: '07:45 PM',
-                    moonrise: '07:00 PM',
-                    moonset: '05:00 AM',
-                    moon_illumination: '10',
-                    moon_phase: 'Waxing Crescent'
-                }],
-                date: '2023-10-27',
-                maxtempC: '25', maxtempF: '77',
-                mintempC: '15', mintempF: '59',
-                hourly: [{
-                    weatherCode: '113', weatherDesc: [{value: 'Sunny'}], time: '1200',
-                    windspeedMiles: '5', windspeedKmph: '8', winddir16Point: 'NW',
-                    precipInches: '0.0', precipMM: '0.0',
-                    tempC: '25', tempF: '77', FeelsLikeC: '26', FeelsLikeF: '79',
-                    chanceofrain: '0', chanceofsnow: '0', humidity: '40'
-                }]
-            },
-            {
-                astronomy: [{
-                    sunrise: '06:31 AM',
-                    sunset: '07:44 PM',
-                    moonrise: '07:45 PM',
-                    moonset: '06:00 AM',
-                    moon_illumination: '50',
-                    moon_phase: 'First Quarter'
-                }],
-                date: '2023-10-28',
-                maxtempC: '2', maxtempF: '35',
-                mintempC: '-2', mintempF: '28',
-                hourly: [{
-                    weatherCode: '338', weatherDesc: [{value: 'Heavy Snow'}], time: '1200',
-                    windspeedMiles: '20', windspeedKmph: '32', winddir16Point: 'N',
-                    precipInches: '0.5', precipMM: '12.0',
-                    tempC: '0', tempF: '32', FeelsLikeC: '-5', FeelsLikeF: '23',
-                    chanceofrain: '0', chanceofsnow: '90', humidity: '85'
-                }]
-            },
-            {
-                astronomy: [{
-                    sunrise: '06:32 AM',
-                    sunset: '07:43 PM',
-                    moonrise: '08:30 PM',
-                    moonset: '07:00 AM',
-                    moon_illumination: '100',
-                    moon_phase: 'Full Moon'
-                }],
-                date: '2023-10-29',
-                maxtempC: '10', maxtempF: '50',
-                mintempC: '5', mintempF: '41',
-                hourly: [{
-                    weatherCode: '248', weatherDesc: [{value: 'Fog'}], time: '1200',
-                    windspeedMiles: '0', windspeedKmph: '0', winddir16Point: 'E',
-                    precipInches: '0.0', precipMM: '0.0',
-                    tempC: '10', tempF: '50', FeelsLikeC: '10', FeelsLikeF: '50',
-                    chanceofrain: '10', chanceofsnow: '0', humidity: '95'
-                }]
-            }],
-            nearest_area: [{
-                areaName: [{value: 'Test City'}],
-                region: [{value: 'Test Region'}],
-                country: [{value: $test_country}]
-            }]
-        }
+        test-data $use_imperial
     } else if $is_cache_valid {
         if $debug { print $"(ansi green)✓ Using cached data(ansi reset)" }
         open $cache_path
