@@ -267,6 +267,27 @@ def wind-dir-icon [
     }
 }
 
+# Resolves and creates the cache directory.
+def resolve-cache-dir [
+    subdir: string # Subdirectory name for the cache
+]: nothing -> string {
+    $nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp') | let base_dir: string
+    $base_dir | path join $subdir | let cache_dir: string
+    if not ($cache_dir | path exists) { mkdir $cache_dir }
+    $cache_dir
+}
+
+# Checks if a cache file is valid based on its modification time and TTL.
+def is-cache-valid [
+    cache_path: string # Path to the cache file
+    ttl: duration      # Time-to-live for the cache
+]: nothing -> bool {
+    if ($cache_path | path exists) {
+        let modified = (ls $cache_path | get modified | first)
+        ((date now) - $modified) < $ttl
+    } else { false }
+}
+
 # Fetches and displays weather information from wttr.in with rich formatting.
 #
 # Retrieves current conditions, hourly forecasts, 3-day forecasts, and astronomy
@@ -321,9 +342,7 @@ export def main [
     $"https://wttr.in/($url_encoded_city)?format=j1($language_param)" | let url: string
 
     # Cache Configuration
-    $nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp') | let base_dir: string
-    $base_dir | path join 'nu_weather_cache' | let cache_dir: string
-    if not ($cache_dir | path exists) { mkdir $cache_dir }
+    resolve-cache-dir 'nu_weather_cache' | let cache_dir: string
 
     if $clear_cache {
         rm -rf $cache_dir
@@ -336,10 +355,9 @@ export def main [
     $cache_dir | path join $cache_file | let cache_path: string
     let is_cache_valid: bool = if $force {
         false
-    } else if ($cache_path | path exists) {
-        let modified = (ls $cache_path | get modified | first)
-        ((date now) - $modified) < 15min
-    } else { false }
+    } else {
+        is-cache-valid $cache_path 15min
+    }
 
     if $debug {
         print $"(ansi cyan)🔍 DEBUG MODE ENABLED(ansi reset)"
