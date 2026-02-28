@@ -2,7 +2,7 @@
 
 A fast weather script for [Nushell](https://www.nushell.sh/) that pulls from [Open-Meteo](https://open-meteo.com) — no API key, no account, noticeably quicker than wttr.in.
 
-If you already use `weather.nu`, this is a drop-in companion rather than a replacement. It's missing moon/astronomy data (Open-Meteo doesn't provide it), but for current conditions (including wind gusts), hourly, and 3-day forecasts (now with UV index and snowfall) it's considerably snappier — which matters when you're putting it in a status bar or just don't want to wait.
+If you already use `weather.nu`, this is a drop-in companion rather than a replacement. It's missing moon/astronomy data (Open-Meteo doesn't provide it), but for current conditions (including wind gusts), hourly, and 3-day forecasts (now with UV index, AQI, and snowfall) it's considerably snappier — which matters when you're putting it in a status bar or just don't want to wait.
 
 Responses are cached for 15 minutes. Units switch automatically between metric and imperial based on country, or you can force either with a flag. Condition text is always in English — `--lang` only affects geocoded place names.
 
@@ -30,6 +30,7 @@ meteo "Paris, France"      # City with country
 meteo -3                   # 3-day forecast
 meteo -H                   # Hourly breakdown (3-hour intervals)
 meteo -1                   # One-line summary for status bars
+meteo -q                   # Air quality (AQI, PM2.5, Ozone, NO2)
 
 # Units
 meteo -m                   # Force metric (°C, km/h)
@@ -60,6 +61,8 @@ The flag names and behavior are intentionally the same, with two exceptions:
 **UV in Forecast.** The 3-day forecast view includes the daily maximum UV index (with color-coded risk labels), which `weather.nu` does not currently show.
 
 **Snow in Forecast.** The 3-day forecast view conditionally adds a "Snow" column if any snowfall is predicted for the period.
+
+**Air Quality.** The main view now includes the current Air Quality Index (AQI). The `--air` (or `-q`) flag provides a detailed breakdown (PM2.5, PM10, Ozone, NO2).
 
 Everything else (`--raw`, `--json`, `--text`, `--compact`, `--minimal`, responsive terminal tiers, cache behavior) works the same way.
 

@@ -17,6 +17,7 @@
 #   > meteo -3                    # 3-day forecast
 #   > meteo --hourly              # Hourly breakdown for today
 #   > meteo --oneline             # Single-line summary for status bars
+#   > meteo --air                 # Air quality data (AQI, PM2.5, Ozone, etc.)
 #   > meteo --emoji               # Use emoji icons
 #   > meteo --debug               # Show diagnostic info
 
@@ -61,6 +62,23 @@ def format-uv [
 
     let icon = if $icon_mode == 'emoji' { '☀ ' } else { "\u{e30d} " }
     $"($icon)(ansi $color)($uv) ($label)(ansi reset)"
+}
+
+# Formats AQI value with color gradient.
+def format-aqi [val: int, --text]: nothing -> string {
+    if $text { return ($val | into string) }
+    let color = if $val <= 50 {
+        '0x00ff00' # Green
+    } else if $val <= 100 {
+        '0xffff00' # Yellow
+    } else if $val <= 150 {
+        '0xffa500' # Orange
+    } else if $val <= 200 {
+        '0xff0000' # Red
+    } else {
+        '0x800080' # Purple
+    }
+    $"($val)" | ansi gradient --fgstart $color --fgend $color
 }
 
 # Maps a WMO weather interpretation code to a human-readable description.
@@ -259,6 +277,12 @@ def fetch-open-meteo [lat: float, lon: float]: nothing -> record {
     http get $url -m 10sec
 }
 
+# Fetches air quality data from Open-Meteo.
+def fetch-air-quality [lat: float, lon: float]: nothing -> record {
+    let url = $"https://air-quality-api.open-meteo.com/v1/air-quality?latitude=($lat)&longitude=($lon)&current=pm2_5,pm10,ozone,nitrogen_dioxide,us_aqi,european_aqi&timezone=auto"
+    http get $url -m 10sec
+}
+
 # --- Display builders ---
 
 # Builds the current weather output record.
@@ -327,6 +351,14 @@ def build-current [
     # UV
     let uv = ($cur.uv_index? | default 0.0 | math round | into int)
 
+    # AQI
+    let us_aqi = ($cur.us_aqi? | default 0 | into int)
+    let eu_aqi = ($cur.european_aqi? | default 0 | into int)
+    let aqi_val = if $units.is_imperial { $us_aqi } else { $eu_aqi }
+    let aqi_label = if $units.is_imperial { "AQI (US)" } else { "AQI (EU)" }
+    let aqi_display = (format-aqi $aqi_val --text=($icon_mode == 'text'))
+    let icon_aqi = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🍃 ' } else { "\u{f06c} " }
+
     # Severe weather flag
     let is_severe = ($code in [95 96 99])
     let alert = if $is_severe {
@@ -360,6 +392,7 @@ def build-current [
         Pressure:    $pressure,
         Visibility:  $vis,
         UV:          (format-uv $uv $icon_mode),
+        AQI:         $"($icon_aqi)($aqi_display) ($aqi_label)",
         Astronomy:   $"($icon_sr)($sr) | ($icon_ss)($ss)"
     }
 
@@ -490,6 +523,32 @@ def build-forecast [
     $rows | table -i false
 }
 
+# Builds the air quality display record.
+def build-air-quality [
+    data: record
+    loc: record
+    is_imperial: bool
+    icon_mode: string
+]: nothing -> record {
+    let cur = ($data.current? | default {})
+    let pm25 = ($cur.pm2_5? | default 0)
+    let pm10 = ($cur.pm10? | default 0)
+    let o3 = ($cur.ozone? | default 0)
+    let no2 = ($cur.nitrogen_dioxide? | default 0)
+    let us_aqi = ($cur.us_aqi? | default 0)
+    let eu_aqi = ($cur.european_aqi? | default 0)
+
+    {
+        Location: ($loc | format-loc $is_imperial),
+        "PM2.5":  $"($pm25) µg/m³",
+        "PM10":   $"($pm10) µg/m³",
+        "Ozone":  $"($o3) µg/m³",
+        "NO2":    $"($no2) µg/m³",
+        "US AQI": (format-aqi $us_aqi --text=($icon_mode == 'text')),
+        "EU AQI": (format-aqi $eu_aqi --text=($icon_mode == 'text'))
+    }
+}
+
 # --- Unit conversion helpers ---
 
 # Converts °C to a rounded display string, in °F if units.is_imperial is true.
@@ -539,6 +598,7 @@ def format-loc [is_imperial: bool]: record -> string {
 #   > meteo -H                   # Hourly breakdown for today
 #   > meteo -1                   # One-line summary
 #   > meteo -e "London"          # Emoji icons
+#   > meteo -q "Paris"           # Air quality
 #   > meteo -t -r "Berlin" | to json  # Pipe-friendly serialisation
 export def main [
     city: string = ""            # Location to fetch weather for. Leave empty to auto-detect.
@@ -557,6 +617,7 @@ export def main [
     --hourly (-H)                # Show hourly forecast for today (3-hour intervals).
     --clear-cache                # Delete all cached data and exit.
     --lang: string = ""          # Language code for geocoding place names (e.g. 'fr', 'de').
+    --air (-q)                   # Show air quality data (PM2.5, PM10, Ozone, NO2, AQI).
 ]: nothing -> any {
     let icon_mode: string = if $emoji {
         'emoji'
@@ -577,13 +638,15 @@ export def main [
     }
 
     let lang_suffix = if ($lang | is-empty) { '' } else { $"_($lang)" }
+    let type_suffix = if $air { "_aqi" } else { "" }
     let cache_file = if ($city | is-empty) {
-        $"auto($lang_suffix).json"
+        $"auto($lang_suffix)($type_suffix).json"
     } else {
-        $"($city | url encode)($lang_suffix).json"
+        $"($city | url encode)($lang_suffix)($type_suffix).json"
     }
     $cache_dir | path join $cache_file | let cache_path: string
-    let use_cache = if $force { false } else { is-cache-valid $cache_path 15min }
+    let ttl = if $air { 30min } else { 15min }
+    let use_cache = if $force { false } else { is-cache-valid $cache_path $ttl }
 
     if $debug {
         print $"(ansi cyan)🔍 DEBUG MODE(ansi reset)"
@@ -594,7 +657,7 @@ export def main [
         print $"Icon Mode:     ($icon_mode)"
         print $"Lang:          (if ($lang | is-empty) { 'auto' } else { $lang })"
         print $"Unit Override: (if $metric { 'Metric' } else if $imperial { 'Imperial' } else { 'Auto' })"
-        print $"View:          (if $hourly { 'Hourly' } else if $forecast { 'Forecast' } else { 'Current' })"
+        print $"View:          (if $air { 'Air Quality' } else if $hourly { 'Hourly' } else if $forecast { 'Forecast' } else { 'Current' })"
         print $"(ansi grey)────────────────────────────────────────(ansi reset)"
         print ""
     }
@@ -616,12 +679,28 @@ export def main [
             if $debug {
                 print $"(ansi green)✓ Location: ($geo.name), ($geo.country_name)(ansi reset)"
                 print $"  Coordinates: ($geo.latitude), ($geo.longitude)"
-                print "Fetching forecast from Open-Meteo..."
             }
 
-            let weather = (fetch-open-meteo $geo.latitude $geo.longitude)
+            let weather = if $air {
+                if $debug { print "Fetching air quality from Open-Meteo..." }
+                fetch-air-quality $geo.latitude $geo.longitude
+            } else {
+                if $debug { print "Fetching forecast from Open-Meteo..." }
+                let w = (fetch-open-meteo $geo.latitude $geo.longitude)
 
-            if $debug { print $"(ansi green)✓ Forecast received(ansi reset)\n" }
+                if $debug { print "Fetching AQI from Open-Meteo..." }
+                let a = try {
+                    fetch-air-quality $geo.latitude $geo.longitude
+                } catch {
+                    if $debug { print "(ansi yellow)AQI fetch failed, skipping...(ansi reset)" }
+                    { current: {} }
+                }
+
+                let merged_cur = (($w.current? | default {}) | merge ($a.current? | default {}))
+                $w | update current $merged_cur
+            }
+
+            if $debug { print $"(ansi green)✓ Data received(ansi reset)\n" }
 
             let combined = ($weather | insert location $geo)
             $combined | save -f $cache_path
@@ -659,6 +738,7 @@ export def main [
 
     let loc_str = ($loc | format-loc $is_imperial)
 
+    if $air     { return (build-air-quality $cached $loc $is_imperial $icon_mode) }
     if $hourly  { return (build-hourly  $cached $units $loc_str $icon_mode --raw=$raw) }
     if $forecast { return (build-forecast $cached $units $loc_str $icon_mode --raw=$raw) }
 
@@ -687,7 +767,7 @@ export def main [
     match $tier {
         "full"    => $output,
         "compact" => ($output | reject Pressure Visibility Clouds),
-        "minimal" => ($output | reject Pressure Visibility Clouds UV Humidity Feels),
+        "minimal" => ($output | reject Pressure Visibility Clouds UV Humidity Feels AQI),
         _         => $output
     } | table -i false
 }
