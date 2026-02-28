@@ -33,11 +33,11 @@ def format-temp [
     units: record<temp_label: string, hot_limit: int, cold_limit: int>
     --text
 ]: nothing -> string {
-    let temp_int = ($val | into int)
+    let temp_int: int = ($val | into int)
     if $text {
         $"($val)($units.temp_label)"
     } else {
-        let gradient = if $temp_int >= $units.hot_limit {
+        let gradient: record = if $temp_int >= $units.hot_limit {
             {s: '0xffff00', e: '0xff0000'}
         } else if $temp_int <= $units.cold_limit {
             {s: '0xffffff', e: '0x00ffff'}
@@ -53,21 +53,21 @@ def format-uv [
     uv: int
     icon_mode: string
 ]: nothing -> string {
-    let label = if $uv >= 11 { "Extreme" } else if $uv >= 8 { "Very High" } else if $uv >= 6 { "High" } else if $uv >= 3 { "Moderate" } else { "Low" }
-    let color = if $uv >= 8 { 'red' } else if $uv >= 6 { 'yellow' } else if $uv >= 3 { 'green' } else { 'grey' }
+    let label: string = if $uv >= 11 { "Extreme" } else if $uv >= 8 { "Very High" } else if $uv >= 6 { "High" } else if $uv >= 3 { "Moderate" } else { "Low" }
+    let color: string = if $uv >= 8 { 'red' } else if $uv >= 6 { 'yellow' } else if $uv >= 3 { 'green' } else { 'grey' }
 
     if $icon_mode == 'text' {
         return $"($uv) ($label)"
     }
 
-    let icon = if $icon_mode == 'emoji' { '☀ ' } else { "\u{e30d} " }
+    let icon: string = if $icon_mode == 'emoji' { '☀ ' } else { "\u{e30d} " }
     $"($icon)(ansi $color)($uv) ($label)(ansi reset)"
 }
 
 # Formats AQI value with color gradient.
 def format-aqi [val: int, --text]: nothing -> string {
     if $text { return ($val | into string) }
-    let color = if $val <= 50 {
+    let color: string = if $val <= 50 {
         '0x00ff00' # Green
     } else if $val <= 100 {
         '0xffff00' # Yellow
@@ -164,14 +164,14 @@ def wmo-icon [
 
 # Converts wind degrees to a 16-point compass direction string.
 def degrees-to-compass [degrees: number]: nothing -> string {
-    let dirs = ["N" "NNE" "NE" "ENE" "E" "ESE" "SE" "SSE" "S" "SSW" "SW" "WSW" "W" "WNW" "NW" "NNW"]
-    let idx = ((($degrees + 11.25) / 22.5) | math floor | into int) mod 16
+    let dirs: list<string> = ["N" "NNE" "NE" "ENE" "E" "ESE" "SE" "SSE" "S" "SSW" "SW" "WSW" "W" "WNW" "NW" "NNW"]
+    let idx: int = ((($degrees + 11.25) / 22.5) | math floor | into int) mod 16
     $dirs | get $idx
 }
 
 # Converts a wind speed in km/h to its Beaufort scale number (0–12).
 def beaufort-scale [kmph: string]: nothing -> int {
-    let k = ($kmph | into int)
+    let k: int = ($kmph | into int)
     match $k {
         $x if $x < 1   => 0,
         $x if $x <= 5  => 1,
@@ -236,9 +236,9 @@ def http-get-with-retry [
     max_retries: int = 3
     timeout: duration = 10sec
 ]: nothing -> any {
-    mut last_err = null
+    mut last_err: any = null
     for attempt in 1..$max_retries {
-        let err = try {
+        let err: any = try {
             return (http get --max-time $timeout $url)
             null
         } catch {|e| $e }
@@ -258,16 +258,16 @@ def http-get-with-retry [
 
 # Geocodes a city name to coordinates + metadata via Open-Meteo Geocoding API.
 def geocode-city [city: string, lang: string]: nothing -> record {
-    let lang_param = if ($lang | is-empty) { "en" } else { $lang }
-    let url = $"https://geocoding-api.open-meteo.com/v1/search?name=($city | url encode)&count=1&language=($lang_param)&format=json"
-    let response = (http-get-with-retry $url)
+    let lang_param: string = if ($lang | is-empty) { "en" } else { $lang }
+    let url: string = $"https://geocoding-api.open-meteo.com/v1/search?name=($city | url encode)&count=1&language=($lang_param)&format=json"
+    let response: any = (http-get-with-retry $url)
     if ($response.results? | is-empty) {
         error make {
             msg: $"Location not found: '($city)'"
             help: "Try a different spelling or a nearby major city."
         }
     }
-    let result = ($response.results | first)
+    let result: record = ($response.results | first)
     {
         name: ($result.name? | default $city),
         admin1: ($result.admin1? | default ""),
@@ -280,7 +280,7 @@ def geocode-city [city: string, lang: string]: nothing -> record {
 
 # Detects the current location from IP address via ipapi.co.
 def detect-location []: nothing -> record {
-    let response = (http-get-with-retry 'https://ipapi.co/json/')
+    let response: any = (http-get-with-retry 'https://ipapi.co/json/')
     {
         name: ($response.city? | default "Unknown"),
         admin1: ($response.region? | default ""),
@@ -294,16 +294,16 @@ def detect-location []: nothing -> record {
 # Fetches the full forecast payload from Open-Meteo for given coordinates.
 # Always fetches in metric + km/h; display layer handles unit conversion.
 def fetch-open-meteo [lat: float, lon: float]: nothing -> record {
-    let vars_current = "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,visibility,uv_index"
-    let vars_hourly = "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
-    let vars_daily = "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant,uv_index_max,snowfall_sum"
-    let url = $"https://api.open-meteo.com/v1/forecast?latitude=($lat)&longitude=($lon)&current=($vars_current)&hourly=($vars_hourly)&daily=($vars_daily)&timezone=auto&forecast_days=3"
+    let vars_current: string = "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,visibility,uv_index"
+    let vars_hourly: string = "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
+    let vars_daily: string = "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant,uv_index_max,snowfall_sum"
+    let url: string = $"https://api.open-meteo.com/v1/forecast?latitude=($lat)&longitude=($lon)&current=($vars_current)&hourly=($vars_hourly)&daily=($vars_daily)&timezone=auto&forecast_days=3"
     http-get-with-retry $url
 }
 
 # Fetches air quality data from Open-Meteo.
 def fetch-air-quality [lat: float, lon: float]: nothing -> record {
-    let url = $"https://air-quality-api.open-meteo.com/v1/air-quality?latitude=($lat)&longitude=($lon)&current=pm2_5,pm10,ozone,nitrogen_dioxide,us_aqi,european_aqi&timezone=auto"
+    let url: string = $"https://air-quality-api.open-meteo.com/v1/air-quality?latitude=($lat)&longitude=($lon)&current=pm2_5,pm10,ozone,nitrogen_dioxide,us_aqi,european_aqi&timezone=auto"
     http-get-with-retry $url
 }
 
@@ -316,95 +316,95 @@ def build-current [
     units: record
     icon_mode: string
 ]: nothing -> record {
-    let cur = ($data.current? | default {})
-    let is_day = ($cur.is_day? | default 1 | into bool)
-    let code = ($cur.weather_code? | default 0 | into int)
-    let icon = (wmo-icon $code $is_day $icon_mode)
-    let desc = (wmo-desc $code)
+    let cur: record = ($data.current? | default {})
+    let is_day: bool = ($cur.is_day? | default 1 | into bool)
+    let code: int = ($cur.weather_code? | default 0 | into int)
+    let icon: string = (wmo-icon $code $is_day $icon_mode)
+    let desc: string = (wmo-desc $code)
 
     # Temps (API is always °C; convert to °F if imperial)
-    let temp_celsius = ($cur.temperature_2m? | default 0.0)
-    let feels_celsius = ($cur.apparent_temperature? | default 0.0)
-    let temp_display = (format-temp (to-display-temp $temp_celsius $units) $units --text=($icon_mode == 'text'))
-    let feels_display = (format-temp (to-display-temp $feels_celsius $units) $units --text=($icon_mode == 'text'))
+    let temp_celsius: float = ($cur.temperature_2m? | default 0.0)
+    let feels_celsius: float = ($cur.apparent_temperature? | default 0.0)
+    let temp_display: string = (format-temp (to-display-temp $temp_celsius $units) $units --text=($icon_mode == 'text'))
+    let feels_display: string = (format-temp (to-display-temp $feels_celsius $units) $units --text=($icon_mode == 'text'))
 
     # Wind (API is always km/h)
-    let wind_kmh = ($cur.wind_speed_10m? | default 0.0)
-    let wind_deg = ($cur.wind_direction_10m? | default 0.0)
-    let wind_dir = (degrees-to-compass $wind_deg)
-    let beaufort = (beaufort-scale ($wind_kmh | math round | into string))
-    let beaufort_icon = (beaufort-icon $beaufort $icon_mode)
-    let wind_speed = (to-display-speed $wind_kmh $units)
-    let wind_icon = if $icon_mode == 'emoji' { $"💨 ($beaufort_icon) " } else { $"($beaufort_icon) " }
-    let wind = $"($wind_icon)($wind_speed)($units.speed_label) (wind-dir-icon $wind_dir $icon_mode)"
+    let wind_kmh: float = ($cur.wind_speed_10m? | default 0.0)
+    let wind_deg: float = ($cur.wind_direction_10m? | default 0.0)
+    let wind_dir: string = (degrees-to-compass $wind_deg)
+    let beaufort: int = (beaufort-scale ($wind_kmh | math round | into string))
+    let beaufort_icon: string = (beaufort-icon $beaufort $icon_mode)
+    let wind_speed: string = (to-display-speed $wind_kmh $units)
+    let wind_icon: string = if $icon_mode == 'emoji' { $"💨 ($beaufort_icon) " } else { $"($beaufort_icon) " }
+    let wind: string = $"($wind_icon)($wind_speed)($units.speed_label) (wind-dir-icon $wind_dir $icon_mode)"
 
     # Precipitation (API is always mm)
-    let precip_mm = ($cur.precipitation? | default 0.0)
-    let precip_val = if $units.is_imperial {
+    let precip_mm: float = ($cur.precipitation? | default 0.0)
+    let precip_val: string = if $units.is_imperial {
         $"($precip_mm * 0.0393701 | math round --precision 2)"
     } else { $"($precip_mm)" }
-    let icon_rain = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☔ ' } else { "\u{e319} " }
-    let precip = $"($icon_rain)($precip_val)($units.precip_label)"
+    let icon_rain: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☔ ' } else { "\u{e319} " }
+    let precip: string = $"($icon_rain)($precip_val)($units.precip_label)"
 
     # Visibility (API is always metres)
-    let visibility_metres = ($cur.visibility? | default 0.0)
-    let visibility_val = if $units.is_imperial {
+    let visibility_metres: float = ($cur.visibility? | default 0.0)
+    let visibility_val: string = if $units.is_imperial {
         $"($visibility_metres / 1609.34 | math round --precision 1)"
     } else {
         $"($visibility_metres / 1000 | math round --precision 1)"
     }
-    let icon_vis = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '👁 ' } else { "\u{e3ae} " }
-    let visibility = $"($icon_vis)($visibility_val)($units.vis_label)"
+    let icon_vis: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '👁 ' } else { "\u{e3ae} " }
+    let visibility: string = $"($icon_vis)($visibility_val)($units.vis_label)"
 
     # Pressure (API is always hPa)
-    let press_hpa = ($cur.pressure_msl? | default 1013.0)
-    let press_val = if $units.is_imperial {
+    let press_hpa: float = ($cur.pressure_msl? | default 1013.0)
+    let press_val: string = if $units.is_imperial {
         $"($press_hpa * 0.02953 | math round --precision 2)"
     } else {
         $"($press_hpa | math round)"
     }
-    let icon_press = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '⏲ ' } else { "\u{e372} " }
-    let pressure = $"($icon_press)($press_val)($units.press_label)"
+    let icon_press: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '⏲ ' } else { "\u{e372} " }
+    let pressure: string = $"($icon_press)($press_val)($units.press_label)"
 
     # Clouds & humidity
-    let clouds = ($cur.cloud_cover? | default 0 | into int)
-    let humidity = ($cur.relative_humidity_2m? | default 0 | into int)
-    let icon_cloud = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☁ ' } else { "\u{e312} " }
-    let icon_humid = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '💧 ' } else { "\u{e373} " }
+    let clouds: int = ($cur.cloud_cover? | default 0 | into int)
+    let humidity: int = ($cur.relative_humidity_2m? | default 0 | into int)
+    let icon_cloud: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☁ ' } else { "\u{e312} " }
+    let icon_humid: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '💧 ' } else { "\u{e373} " }
 
     # UV
-    let uv = ($cur.uv_index? | default 0.0 | math round | into int)
+    let uv: int = ($cur.uv_index? | default 0.0 | math round | into int)
 
     # AQI
-    let us_aqi = ($cur.us_aqi? | default 0 | into int)
-    let eu_aqi = ($cur.european_aqi? | default 0 | into int)
-    let aqi_val = if $units.is_imperial { $us_aqi } else { $eu_aqi }
-    let aqi_label = if $units.is_imperial { "AQI (US)" } else { "AQI (EU)" }
-    let aqi_display = (format-aqi $aqi_val --text=($icon_mode == 'text'))
-    let icon_aqi = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🍃 ' } else { "\u{f06c} " }
+    let us_aqi: int = ($cur.us_aqi? | default 0 | into int)
+    let eu_aqi: int = ($cur.european_aqi? | default 0 | into int)
+    let aqi_val: int = if $units.is_imperial { $us_aqi } else { $eu_aqi }
+    let aqi_label: string = if $units.is_imperial { "AQI (US)" } else { "AQI (EU)" }
+    let aqi_display: string = (format-aqi $aqi_val --text=($icon_mode == 'text'))
+    let icon_aqi: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🍃 ' } else { "\u{f06c} " }
 
     # Severe weather flag
-    let is_severe = ($code in [95 96 99])
-    let alert = if $is_severe {
+    let is_severe: bool = ($code in [95 96 99])
+    let alert: string = if $is_severe {
         if $icon_mode == 'text' { ' [SEVERE]' } else if $icon_mode == 'emoji' { ' ⚠️' } else { ' ' }
     } else { '' }
 
     # Sunrise / Sunset from today's daily slot
-    let sunrise_raw = ($data.daily?.sunrise? | default [] | try { first } catch { "" })
-    let sunset_raw = ($data.daily?.sunset? | default [] | try { first } catch { "" })
-    let sunrise = try { $sunrise_raw | into datetime | format date '%H:%M' } catch { $sunrise_raw }
-    let sunset = try { $sunset_raw | into datetime | format date '%H:%M' } catch { $sunset_raw }
-    let icon_sr = if $icon_mode == 'text' { 'Sunrise: ' } else if $icon_mode == 'emoji' { '🌅 ' } else { "\u{e34c} " }
-    let icon_ss = if $icon_mode == 'text' { 'Sunset: ' } else if $icon_mode == 'emoji' { '🌇 ' } else { "\u{e34d} " }
+    let sunrise_raw: any = ($data.daily?.sunrise? | default [] | try { first } catch { "" })
+    let sunset_raw: any = ($data.daily?.sunset? | default [] | try { first } catch { "" })
+    let sunrise: string = try { $sunrise_raw | into datetime | format date '%H:%M' } catch { $sunrise_raw }
+    let sunset: string = try { $sunset_raw | into datetime | format date '%H:%M' } catch { $sunset_raw }
+    let icon_sr: string = if $icon_mode == 'text' { 'Sunrise: ' } else if $icon_mode == 'emoji' { '🌅 ' } else { "\u{e34c} " }
+    let icon_ss: string = if $icon_mode == 'text' { 'Sunset: ' } else if $icon_mode == 'emoji' { '🌇 ' } else { "\u{e34d} " }
 
     # Condition string
-    let condition = if $icon_mode == 'text' {
+    let condition: string = if $icon_mode == 'text' {
         $"($desc)($alert)"
     } else {
         $"($icon) ($desc)($alert)"
     }
 
-    let output = {
+    let output: record = {
         Location:    ($loc | format-loc $units.is_imperial),
         Condition:   $condition,
         Temperature: $temp_display,
@@ -420,9 +420,9 @@ def build-current [
         Astronomy:   $"($icon_sr)($sunrise) | ($icon_ss)($sunset)"
     }
 
-    let gust_kmh = ($cur.wind_gusts_10m? | default 0.0)
+    let gust_kmh: float = ($cur.wind_gusts_10m? | default 0.0)
     if $gust_kmh > 0 {
-        let gust_val = (to-display-speed $gust_kmh $units)
+        let gust_val: string = (to-display-speed $gust_kmh $units)
         $output | insert Gusts $"($gust_val)($units.speed_label)"
     } else {
         $output
@@ -437,30 +437,30 @@ def build-hourly [
     icon_mode: string
     --raw
 ]: nothing -> any {
-    let hourly = ($data.hourly? | default {time: []})
-    let times = ($hourly.time? | default [])
-    let today = (date now | format date '%Y-%m-%d')
+    let hourly: record = ($data.hourly? | default {time: []})
+    let times: list<string> = ($hourly.time? | default [])
+    let today: string = (date now | format date '%Y-%m-%d')
 
-    let rows = ($times | enumerate | each {|item|
-        let t = $item.item
-        let i = $item.index
+    let rows: list<record> = ($times | enumerate | each {|item|
+        let t: string = $item.item
+        let i: int = $item.index
         if not ($t | str starts-with $today) { return null }
-        let hour_num = try { $t | str substring 11..12 | into int } catch { return null }
+        let hour_num: int = try { $t | str substring 11..12 | into int } catch { return null }
         if ($hour_num mod 3) != 0 { return null }
 
-        let temp_celsius = try { $hourly.temperature_2m         | get $i } catch { 0.0 }
-        let code     = try { $hourly.weather_code            | get $i | into int } catch { 0 }
-        let wind_kmh = try { $hourly.wind_speed_10m          | get $i } catch { 0.0 }
-        let wind_deg = try { $hourly.wind_direction_10m      | get $i } catch { 0.0 }
-        let gust_kmh = try { $hourly.wind_gusts_10m          | get $i } catch { 0.0 }
-        let precip_probability = try { $hourly.precipitation_probability | get $i | into int } catch { 0 }
-        let humidity = try { $hourly.relative_humidity_2m    | get $i | into int } catch { 0 }
+        let temp_celsius: float = try { $hourly.temperature_2m         | get $i } catch { 0.0 }
+        let code: int     = try { $hourly.weather_code            | get $i | into int } catch { 0 }
+        let wind_kmh: float = try { $hourly.wind_speed_10m          | get $i } catch { 0.0 }
+        let wind_deg: float = try { $hourly.wind_direction_10m      | get $i } catch { 0.0 }
+        let gust_kmh: float = try { $hourly.wind_gusts_10m          | get $i } catch { 0.0 }
+        let precip_probability: int = try { $hourly.precipitation_probability | get $i | into int } catch { 0 }
+        let humidity: int = try { $hourly.relative_humidity_2m    | get $i | into int } catch { 0 }
 
-        let wind_dir = (degrees-to-compass $wind_deg)
-        let beaufort = (beaufort-scale ($wind_kmh | math round | into string))
-        let speed = (to-display-speed $wind_kmh $units)
+        let wind_dir: string = (degrees-to-compass $wind_deg)
+        let beaufort: int = (beaufort-scale ($wind_kmh | math round | into string))
+        let speed: string = (to-display-speed $wind_kmh $units)
 
-        let row = {
+        let row: record = {
             Time:      ($t | str substring 11..15),
             Condition: (if $icon_mode == 'text' { wmo-desc $code } else { $"(wmo-icon $code true $icon_mode) (wmo-desc $code)" }),
             Temp:      (format-temp (to-display-temp $temp_celsius $units) $units --text=($icon_mode == 'text')),
@@ -470,7 +470,7 @@ def build-hourly [
         }
 
         if $gust_kmh > 0 {
-            let gust_val = (to-display-speed $gust_kmh $units)
+            let gust_val: string = (to-display-speed $gust_kmh $units)
             $row | insert Gusts $"($gust_val)($units.speed_label)"
         } else {
             $row
@@ -490,43 +490,43 @@ def build-forecast [
     icon_mode: string
     --raw
 ]: nothing -> any {
-    let daily = ($data.daily? | default {time: []})
-    let times = ($daily.time? | default [])
-    let has_snow = ($daily.snowfall_sum? | default [] | any {|x| $x > 0})
+    let daily: record = ($data.daily? | default {time: []})
+    let times: list<string> = ($daily.time? | default [])
+    let has_snow: bool = ($daily.snowfall_sum? | default [] | any {|x| $x > 0})
 
-    let rows = ($times | enumerate | each {|item|
-        let t = $item.item
-        let i = $item.index
-        let code      = try { $daily.weather_code                    | get $i | into int } catch { 0 }
-        let temp_max_celsius = try { $daily.temperature_2m_max              | get $i } catch { 0.0 }
-        let temp_min_celsius = try { $daily.temperature_2m_min              | get $i } catch { 0.0 }
-        let precip_mm = try { $daily.precipitation_sum               | get $i } catch { 0.0 }
-        let snow_mm   = try { $daily.snowfall_sum                    | get $i } catch { 0.0 }
-        let precip_probability = try { $daily.precipitation_probability_max   | get $i | into int } catch { 0 }
-        let wind_kmh  = try { $daily.wind_speed_10m_max              | get $i } catch { 0.0 }
-        let wind_deg  = try { $daily.wind_direction_10m_dominant     | get $i } catch { 0.0 }
-        let uv_max    = try { $daily.uv_index_max                    | get $i | math round | into int } catch { 0 }
-        let sunrise_raw = try { $daily.sunrise                         | get $i } catch { "" }
-        let sunset_raw = try { $daily.sunset                          | get $i } catch { "" }
+    let rows: list<record> = ($times | enumerate | each {|item|
+        let t: string = $item.item
+        let i: int = $item.index
+        let code: int      = try { $daily.weather_code                    | get $i | into int } catch { 0 }
+        let temp_max_celsius: float = try { $daily.temperature_2m_max              | get $i } catch { 0.0 }
+        let temp_min_celsius: float = try { $daily.temperature_2m_min              | get $i } catch { 0.0 }
+        let precip_mm: float = try { $daily.precipitation_sum               | get $i } catch { 0.0 }
+        let snow_mm: float   = try { $daily.snowfall_sum                    | get $i } catch { 0.0 }
+        let precip_probability: int = try { $daily.precipitation_probability_max   | get $i | into int } catch { 0 }
+        let wind_kmh: float  = try { $daily.wind_speed_10m_max              | get $i } catch { 0.0 }
+        let wind_deg: float  = try { $daily.wind_direction_10m_dominant     | get $i } catch { 0.0 }
+        let uv_max: int    = try { $daily.uv_index_max                    | get $i | math round | into int } catch { 0 }
+        let sunrise_raw: any = try { $daily.sunrise                         | get $i } catch { "" }
+        let sunset_raw: any = try { $daily.sunset                          | get $i } catch { "" }
 
-        let precip_val = if $units.is_imperial {
+        let precip_val: string = if $units.is_imperial {
             $"($precip_mm * 0.0393701 | math round --precision 2)($units.precip_label)"
         } else {
             $"($precip_mm)($units.precip_label)"
         }
-        let snow_val = if $units.is_imperial {
+        let snow_val: string = if $units.is_imperial {
             $"($snow_mm * 0.0393701 | math round --precision 2)($units.precip_label)"
         } else {
             $"($snow_mm)($units.precip_label)"
         }
-        let wind_dir = (degrees-to-compass $wind_deg)
-        let speed = (to-display-speed $wind_kmh $units)
-        let sunrise = try { $sunrise_raw | into datetime | format date '%H:%M' } catch { $sunrise_raw }
-        let sunset = try { $sunset_raw | into datetime | format date '%H:%M' } catch { $sunset_raw }
-        let icon_sr = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌅 ' } else { "\u{e34c} " }
-        let icon_ss = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌇 ' } else { "\u{e34d} " }
+        let wind_dir: string = (degrees-to-compass $wind_deg)
+        let speed: string = (to-display-speed $wind_kmh $units)
+        let sunrise: string = try { $sunrise_raw | into datetime | format date '%H:%M' } catch { $sunrise_raw }
+        let sunset: string = try { $sunset_raw | into datetime | format date '%H:%M' } catch { $sunset_raw }
+        let icon_sr: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌅 ' } else { "\u{e34c} " }
+        let icon_ss: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌇 ' } else { "\u{e34d} " }
 
-        let row = {
+        let row: record = {
             Date:      ($t | into datetime | format date '%a, %b %d'),
             Condition: (if $icon_mode == 'text' { wmo-desc $code } else { $"(wmo-icon $code true $icon_mode) (wmo-desc $code)" }),
             High:      (format-temp (to-display-temp $temp_max_celsius $units) $units --text=($icon_mode == 'text')),
@@ -554,13 +554,13 @@ def build-air-quality [
     is_imperial: bool
     icon_mode: string
 ]: nothing -> record {
-    let current = ($data.current? | default {})
-    let pm2_5 = ($current.pm2_5? | default 0)
-    let pm10_val = ($current.pm10? | default 0)
-    let ozone = ($current.ozone? | default 0)
-    let nitrogen_dioxide = ($current.nitrogen_dioxide? | default 0)
-    let us_aqi = ($current.us_aqi? | default 0)
-    let eu_aqi = ($current.european_aqi? | default 0)
+    let current: record = ($data.current? | default {})
+    let pm2_5: float = ($current.pm2_5? | default 0)
+    let pm10_val: float = ($current.pm10? | default 0)
+    let ozone: float = ($current.ozone? | default 0)
+    let nitrogen_dioxide: float = ($current.nitrogen_dioxide? | default 0)
+    let us_aqi: int = ($current.us_aqi? | default 0)
+    let eu_aqi: int = ($current.european_aqi? | default 0)
 
     {
         Location: ($loc | format-loc $is_imperial),
@@ -595,10 +595,10 @@ def to-display-speed [kmh: float, units: record]: nothing -> string {
 
 # Formats a location record to a display string.
 def format-loc [is_imperial: bool]: record -> string {
-    let loc = $in
-    let name = ($loc.name? | default "Unknown")
-    let admin1 = ($loc.admin1? | default "")
-    let country = ($loc.country_name? | default "Unknown")
+    let loc: record = $in
+    let name: string = ($loc.name? | default "Unknown")
+    let admin1: string = ($loc.admin1? | default "")
+    let country: string = ($loc.country_name? | default "Unknown")
     if $is_imperial and not ($admin1 | is-empty) {
         $"($name), ($admin1)"
     } else {
@@ -661,16 +661,16 @@ export def main [
         return
     }
 
-    let lang_suffix = if ($lang | is-empty) { '' } else { $"_($lang)" }
-    let type_suffix = if $air { "_aqi" } else { "" }
-    let cache_file = if ($city | is-empty) {
+    let lang_suffix: string = if ($lang | is-empty) { '' } else { $"_($lang)" }
+    let type_suffix: string = if $air { "_aqi" } else { "" }
+    let cache_file: string = if ($city | is-empty) {
         $"auto($lang_suffix)($type_suffix).json"
     } else {
         $"($city | url encode)($lang_suffix)($type_suffix).json"
     }
     $cache_dir | path join $cache_file | let cache_path: string
-    let ttl = if $air { 30min } else { 15min }
-    let use_cache = if $force { false } else { is-cache-valid $cache_path $ttl }
+    let ttl: duration = if $air { 30min } else { 15min }
+    let use_cache: bool = if $force { false } else { is-cache-valid $cache_path $ttl }
 
     if $debug {
         print $"(ansi cyan)🔍 DEBUG MODE(ansi reset)"
@@ -692,7 +692,7 @@ export def main [
     } else {
         if ($cache_path | path exists) { rm $cache_path }
         try {
-            let geo = if ($city | is-empty) {
+            let geo: record = if ($city | is-empty) {
                 if $debug { print "Auto-detecting location via IP (ipapi.co)..." }
                 detect-location
             } else {
@@ -705,32 +705,32 @@ export def main [
                 print $"  Coordinates: ($geo.latitude), ($geo.longitude)"
             }
 
-            let weather = if $air {
+            let weather: record = if $air {
                 if $debug { print "Fetching air quality from Open-Meteo..." }
                 fetch-air-quality $geo.latitude $geo.longitude
             } else {
                 if $debug { print "Fetching forecast from Open-Meteo..." }
-                let w = (fetch-open-meteo $geo.latitude $geo.longitude)
+                let w: record = (fetch-open-meteo $geo.latitude $geo.longitude)
 
                 if $debug { print "Fetching AQI from Open-Meteo..." }
-                let a = try {
+                let a: record = try {
                     fetch-air-quality $geo.latitude $geo.longitude
                 } catch {
                     if $debug { print "(ansi yellow)AQI fetch failed, skipping...(ansi reset)" }
                     { current: {} }
                 }
 
-                let merged_cur = (($w.current? | default {}) | merge ($a.current? | default {}))
+                let merged_cur: record = (($w.current? | default {}) | merge ($a.current? | default {}))
                 $w | update current $merged_cur
             }
 
             if $debug { print $"(ansi green)✓ Data received(ansi reset)\n" }
 
-            let combined = ($weather | insert location $geo)
+            let combined: record = ($weather | insert location $geo)
             $combined | save -f $cache_path
             $combined
         } catch {|err|
-            let location_clause = if ($city | is-empty) { "" } else { $" for '($city)'" }
+            let location_clause: string = if ($city | is-empty) { "" } else { $" for '($city)'" }
             error make {
                 msg: $"Could not fetch weather($location_clause)"
                 help: $err.msg
@@ -740,11 +740,11 @@ export def main [
 
     if $json { return $cached }
 
-    let loc = ($cached.location? | default {name: "Unknown", admin1: "", country_name: "Unknown", country_code: "US", latitude: 0.0, longitude: 0.0})
+    let loc: record = ($cached.location? | default {name: "Unknown", admin1: "", country_name: "Unknown", country_code: "US", latitude: 0.0, longitude: 0.0})
 
     # Determine units — imperial only for US, Liberia (LR), Myanmar (MM)
-    let country_code = ($loc.country_code? | default "" | str upcase)
-    let is_imperial = if $imperial { true } else if $metric { false } else {
+    let country_code: string = ($loc.country_code? | default "" | str upcase)
+    let is_imperial: bool = if $imperial { true } else if $metric { false } else {
         $country_code in ["US" "LR" "MM"]
     }
 
@@ -754,25 +754,25 @@ export def main [
         print ""
     }
 
-    let units = if $is_imperial {
+    let units: record = if $is_imperial {
         {is_imperial: true,  temp_label: "°F", speed_label: "mph", precip_label: "in",  vis_label: "mi",  press_label: "inHg", hot_limit: 80, cold_limit: 40}
     } else {
         {is_imperial: false, temp_label: "°C", speed_label: "km/h", precip_label: "mm", vis_label: "km",  press_label: "hPa",  hot_limit: 27, cold_limit: 4}
     }
 
-    let loc_str = ($loc | format-loc $is_imperial)
+    let loc_str: string = ($loc | format-loc $is_imperial)
 
     if $air     { return (build-air-quality $cached $loc $is_imperial $icon_mode) }
     if $hourly  { return (build-hourly  $cached $units $loc_str $icon_mode --raw=$raw) }
     if $forecast { return (build-forecast $cached $units $loc_str $icon_mode --raw=$raw) }
 
     # Current weather
-    let output = (build-current $cached $loc $units $icon_mode)
+    let output: record = (build-current $cached $loc $units $icon_mode)
 
     if $raw { return $output }
 
-    let term_width = (term size).columns
-    let tier = if $oneline { "oneline"
+    let term_width: int = (term size).columns
+    let tier: string = if $oneline { "oneline"
     } else if $minimal { "minimal"
     } else if $compact { "compact"
     } else if $term_width >= $COL_FULL_WIDTH { "full"
@@ -780,11 +780,11 @@ export def main [
     } else { "minimal" }
 
     if $tier == "oneline" {
-        let code = ($cached.current?.weather_code? | default 0 | into int)
-        let is_day = ($cached.current?.is_day? | default 1 | into bool)
-        let tc = ($cached.current?.temperature_2m? | default 0.0)
-        let temp_val = (to-display-temp $tc $units)
-        let icon = if $icon_mode == 'text' { '' } else { $"(wmo-icon $code $is_day $icon_mode) " }
+        let code: int = ($cached.current?.weather_code? | default 0 | into int)
+        let is_day: bool = ($cached.current?.is_day? | default 1 | into bool)
+        let tc: float = ($cached.current?.temperature_2m? | default 0.0)
+        let temp_val: string = (to-display-temp $tc $units)
+        let icon: string = if $icon_mode == 'text' { '' } else { $"(wmo-icon $code $is_day $icon_mode) " }
         return $"($loc_str): ($icon)($temp_val)($units.temp_label) - (wmo-desc $code)"
     }
 
