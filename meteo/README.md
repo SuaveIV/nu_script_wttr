@@ -2,7 +2,7 @@
 
 A fast weather script for [Nushell](https://www.nushell.sh/) that pulls from [Open-Meteo](https://open-meteo.com) — no API key, no account, noticeably quicker than wttr.in.
 
-If you already use `weather.nu`, this is a drop-in companion rather than a replacement. It's missing moon/astronomy data (Open-Meteo doesn't provide it), but for current conditions (including wind gusts), hourly, and 3-day forecasts it's considerably snappier — which matters when you're putting it in a status bar or just don't want to wait.
+If you already use `weather.nu`, this is a drop-in companion rather than a replacement. It's missing moon/astronomy data (Open-Meteo doesn't provide it), but for current conditions (including wind gusts), hourly, and 3-day forecasts (now with UV index) it's considerably snappier — which matters when you're putting it in a status bar or just don't want to wait.
 
 Responses are cached for 15 minutes. Units switch automatically between metric and imperial based on country, or you can force either with a flag. Condition text is always in English — `--lang` only affects geocoded place names.
 
@@ -56,6 +56,8 @@ The flag names and behavior are intentionally the same, with two exceptions:
 **No `--astro` flag.** Open-Meteo doesn't include moon phase or illumination data in its free tier. Sunrise and sunset are still shown in the current weather view.
 
 **No `~` or `@` location syntax.** wttr.in accepts landmark names (`~Eiffel Tower`) and domain lookups (`@github.com`). Open-Meteo's geocoder only handles city names and will return an error for those formats — just use the nearest city name instead.
+
+**UV in Forecast.** The 3-day forecast view includes the daily maximum UV index (with color-coded risk labels), which `weather.nu` does not currently show.
 
 Everything else (`--raw`, `--json`, `--text`, `--compact`, `--minimal`, responsive terminal tiers, cache behavior) works the same way.
 

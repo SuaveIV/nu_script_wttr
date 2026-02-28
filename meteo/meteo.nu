@@ -47,6 +47,22 @@ def format-temp [
     }
 }
 
+# Formats UV index with label and color.
+def format-uv [
+    uv: int
+    icon_mode: string
+]: nothing -> string {
+    let label = if $uv >= 11 { "Extreme" } else if $uv >= 8 { "Very High" } else if $uv >= 6 { "High" } else if $uv >= 3 { "Moderate" } else { "Low" }
+    let color = if $uv >= 8 { 'red' } else if $uv >= 6 { 'yellow' } else if $uv >= 3 { 'green' } else { 'grey' }
+
+    if $icon_mode == 'text' {
+        return $"($uv) ($label)"
+    }
+
+    let icon = if $icon_mode == 'emoji' { '☀ ' } else { ' ' }
+    $"($icon)(ansi $color)($uv) ($label)(ansi reset)"
+}
+
 # Maps a WMO weather interpretation code to a human-readable description.
 def wmo-desc [code: int]: nothing -> string {
     match $code {
@@ -310,11 +326,6 @@ def build-current [
 
     # UV
     let uv = ($cur.uv_index? | default 0.0 | math round | into int)
-    let uv_label = if $uv >= 11 { "Extreme" } else if $uv >= 8 { "Very High" } else if $uv >= 6 { "High" } else if $uv >= 3 { "Moderate" } else { "Low" }
-    let uv_color = if $uv >= 8 { 'red' } else if $uv >= 6 { 'yellow' } else if $uv >= 3 { 'green' } else { 'grey' }
-    let icon_uv = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☀ ' } else { ' ' }
-    let ansi_uv = if $icon_mode == 'text' { '' } else { (ansi $uv_color) }
-    let ansi_reset = if $icon_mode == 'text' { '' } else { (ansi reset) }
 
     # Severe weather flag
     let is_severe = ($code in [95 96 99])
@@ -348,7 +359,7 @@ def build-current [
         Wind:        $wind,
         Pressure:    $pressure,
         Visibility:  $vis,
-        UV:          $"($icon_uv)($ansi_uv)($uv) ($uv_label)($ansi_reset)",
+        UV:          (format-uv $uv $icon_mode),
         Astronomy:   $"($icon_sr)($sr) | ($icon_ss)($ss)"
     }
 
@@ -435,6 +446,7 @@ def build-forecast [
         let prob      = try { $daily.precipitation_probability_max   | get $i | into int } catch { 0 }
         let wind_kmh  = try { $daily.wind_speed_10m_max              | get $i } catch { 0.0 }
         let wind_deg  = try { $daily.wind_direction_10m_dominant     | get $i } catch { 0.0 }
+        let uv_max    = try { $daily.uv_index_max                    | get $i | math round | into int } catch { 0 }
         let sr_raw    = try { $daily.sunrise                         | get $i } catch { "" }
         let ss_raw    = try { $daily.sunset                          | get $i } catch { "" }
 
@@ -457,6 +469,7 @@ def build-forecast [
             Low:       (format-temp (to-display-temp $min_c $units) $units --text=($icon_mode == 'text')),
             Rain:      $"($precip_val) ($prob)%",
             Wind:      $"(wind-dir-icon $wind_dir $icon_mode) ($speed)($units.speed_label)",
+            UV:        (format-uv $uv_max $icon_mode),
             Sunrise:   $"($icon_sr)($sr)",
             Sunset:    $"($icon_ss)($ss)"
         }
