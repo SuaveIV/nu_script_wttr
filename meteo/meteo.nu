@@ -254,7 +254,7 @@ def detect-location []: nothing -> record {
 def fetch-open-meteo [lat: float, lon: float]: nothing -> record {
     let vars_current = "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,visibility,uv_index"
     let vars_hourly = "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
-    let vars_daily = "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant,uv_index_max"
+    let vars_daily = "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant,uv_index_max,snowfall_sum,snow_depth"
     let url = $"https://api.open-meteo.com/v1/forecast?latitude=($lat)&longitude=($lon)&current=($vars_current)&hourly=($vars_hourly)&daily=($vars_daily)&timezone=auto&forecast_days=3"
     http get $url -m 10sec
 }
@@ -435,6 +435,7 @@ def build-forecast [
 ]: nothing -> any {
     let daily = ($data.daily? | default {time: []})
     let times = ($daily.time? | default [])
+    let has_snow = ($daily.snowfall_sum? | default [] | any {|x| $x > 0})
 
     let rows = ($times | enumerate | each {|item|
         let t = $item.item
@@ -443,6 +444,7 @@ def build-forecast [
         let max_c     = try { $daily.temperature_2m_max              | get $i } catch { 0.0 }
         let min_c     = try { $daily.temperature_2m_min              | get $i } catch { 0.0 }
         let precip_mm = try { $daily.precipitation_sum               | get $i } catch { 0.0 }
+        let snow_mm   = try { $daily.snowfall_sum                    | get $i } catch { 0.0 }
         let prob      = try { $daily.precipitation_probability_max   | get $i | into int } catch { 0 }
         let wind_kmh  = try { $daily.wind_speed_10m_max              | get $i } catch { 0.0 }
         let wind_deg  = try { $daily.wind_direction_10m_dominant     | get $i } catch { 0.0 }
@@ -455,6 +457,11 @@ def build-forecast [
         } else {
             $"($precip_mm)($units.precip_label)"
         }
+        let snow_val = if $units.is_imperial {
+            $"($snow_mm * 0.0393701 | math round --precision 2)($units.precip_label)"
+        } else {
+            $"($snow_mm)($units.precip_label)"
+        }
         let wind_dir = (degrees-to-compass $wind_deg)
         let speed = (to-display-speed $wind_kmh $units)
         let sr = try { $sr_raw | into datetime | format date '%H:%M' } catch { $sr_raw }
@@ -462,17 +469,20 @@ def build-forecast [
         let icon_sr = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌅 ' } else { "\u{e34c} " }
         let icon_ss = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌇 ' } else { "\u{e34d} " }
 
-        {
+        let row = {
             Date:      ($t | into datetime | format date '%a, %b %d'),
             Condition: (if $icon_mode == 'text' { wmo-desc $code } else { $"(wmo-icon $code true $icon_mode) (wmo-desc $code)" }),
             High:      (format-temp (to-display-temp $max_c $units) $units --text=($icon_mode == 'text')),
             Low:       (format-temp (to-display-temp $min_c $units) $units --text=($icon_mode == 'text')),
             Rain:      $"($precip_val) ($prob)%",
+            Snow:      $snow_val,
             Wind:      $"(wind-dir-icon $wind_dir $icon_mode) ($speed)($units.speed_label)",
             UV:        (format-uv $uv_max $icon_mode),
             Sunrise:   $"($icon_sr)($sr)",
             Sunset:    $"($icon_ss)($ss)"
         }
+
+        if $has_snow { $row } else { $row | reject Snow }
     })
 
     if $raw { return $rows }
