@@ -414,28 +414,29 @@ def build-current [
         $"($icon) ($desc)($alert)"
     }
 
-    let output: record = {
+    let gust_kmh: float = ($cur.wind_gusts_10m? | default 0.0)
+    let gusts_part: record = if $gust_kmh > 0 {
+        let gust_val: string = (to-display-speed $gust_kmh $units)
+        { Gusts: $"($gust_val)($units.speed_label)" }
+    } else { {} }
+
+    {
         Location:    ($loc | format-loc $units.is_imperial),
         Condition:   $condition,
         Temperature: $temp_display,
         Feels:       $feels_display,
+        Wind:        $wind
+    }
+    | merge $gusts_part
+    | merge {
         Clouds:      $"($icon_cloud)($clouds)%",
         Rain:        $precip,
         Humidity:    $"($icon_humid)($humidity)%",
-        Wind:        $wind,
         Pressure:    $pressure,
         Visibility:  $visibility,
         UV:          (format-uv $uv $icon_mode),
         AQI:         $"($icon_aqi)($aqi_display) ($aqi_label)",
         Astronomy:   $"($icon_sr)($sunrise) | ($icon_ss)($sunset)"
-    }
-
-    let gust_kmh: float = ($cur.wind_gusts_10m? | default 0.0)
-    if $gust_kmh > 0 {
-        let gust_val: string = (to-display-speed $gust_kmh $units)
-        $output | insert Gusts $"($gust_val)($units.speed_label)"
-    } else {
-        $output
     }
 }
 
