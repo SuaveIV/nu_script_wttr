@@ -1,25 +1,18 @@
-# Fetches and displays weather information from Open-Meteo.
+# Get weather information from Open-Meteo.
 #
-# Fast, no-API-key alternative to weather.nu. Uses Open-Meteo's free API for
-# current conditions, hourly forecasts, and 3-day forecasts. Noticeably faster
-# than wttr.in. Note: moon/astronomy data is not available from this source.
-#
-# Data: Open-Meteo (https://open-meteo.com)
-# Geocoding: Open-Meteo Geocoding API
-# Auto-detect: ipapi.co
-#
-# Search terms: weather, forecast, meteo, openmeteo, climate
+# A fast alternative to weather.nu with no API keys. Uses Open-Meteo's free
+# API for current conditions, hourly breakdowns, and 3-day forecasts.
+# Note: Moon data is not available.
 #
 # Examples:
-#   > meteo                       # Current weather, auto-detected location
-#   > meteo "New York"            # Named city
-#   > meteo "Paris, France"       # City with country
+#   > meteo                       # Auto-detect location via IP
+#   > meteo "New York"            # By city name
 #   > meteo -3                    # 3-day forecast
-#   > meteo --hourly              # Hourly breakdown for today
-#   > meteo --oneline             # Single-line summary for status bars
-#   > meteo --air                 # Air quality data (AQI, PM2.5, Ozone, etc.)
-#   > meteo --emoji               # Use emoji icons
-#   > meteo --debug               # Show diagnostic info
+#   > meteo --hourly              # Hourly breakdown (today)
+#   > meteo --oneline             # Status bar summary
+#   > meteo --air                 # Air quality (AQI, PM2.5, Ozone)
+#   > meteo --emoji               # Emoji icons
+#   > meteo --debug               # Diagnostics
 
 const COL_FULL_WIDTH    = 100
 const COL_COMPACT_WIDTH = 80
@@ -831,22 +824,20 @@ def demo-data []: nothing -> record {
 
 # --- Main command ---
 
-# Fetches and displays weather from Open-Meteo. Fast, no API key required.
+# Get weather information from Open-Meteo. No API keys required.
 #
 # Responses are cached for 15 minutes. Units are auto-selected by country
-# (imperial for US/Liberia/Myanmar, metric elsewhere) unless overridden.
-# Condition text is always in English (unlike wttr.in, Open-Meteo does not
-# localise weather descriptions).
+# unless forced with a flag. Descriptions are always in English.
 #
 # Examples:
-#   > meteo                      # Current weather, auto-detected location
-#   > meteo "Tokyo"              # Named city
+#   > meteo                      # Current weather (auto-detect)
+#   > meteo "Tokyo"              # By city
 #   > meteo -3                   # 3-day forecast
-#   > meteo -H                   # Hourly breakdown for today
-#   > meteo -1                   # One-line summary
-#   > meteo -E "London"          # Emoji icons
-#   > meteo -q "Paris"           # Air quality
-#   > meteo -T -r "Berlin" | to json  # Pipe-friendly serialisation
+#   > meteo -H                   # Hourly breakdown
+#   > meteo -1                   # Single line
+#   > meteo -E "London"          # Emojis
+#   > meteo -Q "Paris"           # Air quality
+#   > meteo -T -r "Berlin" | to json  # For scripts
 export def main [
     city: string = ""            # Location to fetch weather for. Leave empty to auto-detect.
     --raw (-r)                   # Return raw record instead of a formatted table.

@@ -1,70 +1,64 @@
-# nu_script_meteo
+# meteo
 
-A fast weather script for [Nushell](https://www.nushell.sh/) that pulls from [Open-Meteo](https://open-meteo.com) — no API key, no account, noticeably quicker than wttr.in.
+A fast weather script for [Nushell](https://www.nushell.sh/). It pulls data from [Open-Meteo](https://open-meteo.com) — no API keys or accounts needed. It's built to be faster than `wttr.in`.
 
-If you already use `weather.nu`, this is a drop-in companion rather than a replacement. It's missing moon/astronomy data (Open-Meteo doesn't provide it), but for current conditions (including wind gusts), hourly, and 3-day forecasts (now with UV index, AQI, and snowfall) it's considerably snappier — which matters when you're putting it in a status bar or just don't want to wait.
+If you use `weather.nu`, this is a good companion for when you just want current conditions or a quick forecast without waiting. Open-Meteo doesn't provide moon or astronomy data, but the script handles current conditions (including gusts), hourly breakdowns, and 3-day forecasts with UV index, air quality, and snowfall.
 
-Responses are cached for 15 minutes. Units switch automatically between metric and imperial based on country, or you can force either with a flag. Condition text is always in English — `--lang` only affects geocoded place names.
+Responses stay in the cache for 15 minutes. Units switch between metric and imperial based on your country, but you can force either with a flag.
 
 ## Installation
 
-1. Download `meteo.nu` and drop it in your Nushell scripts directory
-   (`~/.config/nushell/scripts/` on Linux/Mac, `%APPDATA%\nushell\scripts\` on Windows)
-2. Add to your `config.nu`:
+1. Put `meteo.nu` in your Nushell scripts folder:
+   - Linux/Mac: `~/.config/nushell/scripts/`
+   - Windows: `%APPDATA%\nushell\scripts\`
+
+2. Add this to your `config.nu`:
 
 ```nushell
 use scripts/meteo.nu
 ```
 
-Nerd Font icons are off by default. Either set `$env.NERD_FONTS = "1"` in your config, or use `-e` for emojis, or `-t` for plain text.
+Nerd Font icons are off by default. To enable them, set `$env.NERD_FONTS = "1"` in your config. You can also use `-e` for emojis or `-t` for plain text.
 
 ## Usage
 
 ```nushell
 # Basic
-meteo                      # Auto-detect from IP
-meteo "Tokyo"              # City name
-meteo "Paris, France"      # City with country
+meteo                      # Auto-detect location from IP
+meteo "Tokyo"              # By city
+meteo "Paris, France"      # City and country
 
 # Views
 meteo -3                   # 3-day forecast
 meteo -H                   # Hourly breakdown (3-hour intervals)
-meteo -1                   # One-line summary for status bars
-meteo -q                   # Air quality (AQI, PM2.5, Ozone, NO2)
+meteo -1                   # One-line summary
+meteo -Q                   # Air quality details
 
 # Units
 meteo -m                   # Force metric (°C, km/h)
 meteo -i                   # Force imperial (°F, mph)
 
 # Icons
-meteo -e "Berlin"          # Emoji instead of Nerd Fonts
-meteo -t "Berlin"          # Plain text, no icons or colors
+meteo -e "Berlin"          # Use emojis
+meteo -t "Berlin"          # Plain text only
 
 # Output
-meteo -r                   # Return a raw record (pipeable)
-meteo -j                   # Return the full API response
-meteo -f                   # Bypass cache, fetch fresh
+meteo -r                   # Return a raw record (for scripts)
+meteo -j                   # Full API response
+meteo -f                   # Skip cache and fetch fresh data
 
-# Housekeeping
-meteo --clear-cache        # Wipe all cached data
-meteo --debug "London"     # Show what's happening under the hood
+# Management
+meteo --clear-cache        # Wipe the cache
+meteo --debug "London"     # Show diagnostic info
 ```
 
 ## Differences from weather.nu
 
-The flag names and behavior are intentionally the same, with two exceptions:
+The flags mostly match `weather.nu`, with a few exceptions:
 
-**No `--astro` flag.** Open-Meteo doesn't include moon phase or illumination data in its free tier. Sunrise and sunset are still shown in the current weather view.
-
-**No `~` or `@` location syntax.** wttr.in accepts landmark names (`~Eiffel Tower`) and domain lookups (`@github.com`). Open-Meteo's geocoder only handles city names and will return an error for those formats — just use the nearest city name instead.
-
-**UV in Forecast.** The 3-day forecast view includes the daily maximum UV index (with color-coded risk labels), which `weather.nu` does not currently show.
-
-**Snow in Forecast.** The 3-day forecast view conditionally adds a "Snow" column if any snowfall is predicted for the period.
-
-**Air Quality.** The main view now includes the current Air Quality Index (AQI). The `--air` (or `-q`) flag provides a detailed breakdown (PM2.5, PM10, Ozone, NO2).
-
-Everything else (`--raw`, `--json`, `--text`, `--compact`, `--minimal`, responsive terminal tiers, cache behavior) works the same way.
+- **No moon data:** Open-Meteo doesn't include moon phases in the free tier. Sunrise and sunset are still shown.
+- **No `~` or `@` syntax:** Use city names. Open-Meteo's geocoder won't resolve landmarks or domains.
+- **Extra data:** Includes UV index (color-coded), AQI, and snowfall in the forecast views.
 
 ## Piping
 
@@ -75,12 +69,11 @@ meteo -1 "Seoul" | str upcase
 meteo -r -t "Berlin" | to json
 ```
 
-## Cache location
+## Cache
 
-Cached responses go to `nu_meteo_cache` inside Nushell's cache directory — separate from `weather.nu`'s `nu_weather_cache`, so the two scripts don't interfere with each other.
+Data is saved to `nu_meteo_cache` in your Nushell cache directory. This is separate from `weather.nu` to avoid conflicts.
 
 ## Data sources
 
-- Weather: [Open-Meteo](https://open-meteo.com) (free, no key required)
-- Geocoding: [Open-Meteo Geocoding API](https://open-meteo.com/en/docs/geocoding-api)
-- IP auto-detect: [ipapi.co](https://ipapi.co)
+- Weather & Geocoding: [Open-Meteo](https://open-meteo.com)
+- IP Location: [ipapi.co](https://ipapi.co)
