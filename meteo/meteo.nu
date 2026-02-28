@@ -230,13 +230,37 @@ def is-cache-valid [cache_path: string, ttl: duration]: nothing -> bool {
     } else { false }
 }
 
+# Performs an HTTP GET request with retry logic and backoff.
+def http-get-with-retry [
+    url: string
+    max_retries: int = 3
+    timeout: duration = 10sec
+]: nothing -> any {
+    mut last_err = null
+    for attempt in 1..$max_retries {
+        let err = try {
+            return (http get --max-time $timeout $url)
+            null
+        } catch {|e| $e }
+
+        $last_err = $err
+        if $attempt < $max_retries {
+            sleep (($attempt * 200) * 1ms)
+        }
+    }
+    error make {
+        msg: $"Failed to fetch ($url) after ($max_retries) attempts"
+        help: ($last_err | get msg? | default "unknown error")
+    }
+}
+
 # --- API helpers ---
 
 # Geocodes a city name to coordinates + metadata via Open-Meteo Geocoding API.
 def geocode-city [city: string, lang: string]: nothing -> record {
     let lang_param = if ($lang | is-empty) { "en" } else { $lang }
     let url = $"https://geocoding-api.open-meteo.com/v1/search?name=($city | url encode)&count=1&language=($lang_param)&format=json"
-    let res = (http get $url -m 10sec)
+    let res = (http-get-with-retry $url)
     if ($res.results? | is-empty) {
         error make {
             msg: $"Location not found: '($city)'"
@@ -256,7 +280,7 @@ def geocode-city [city: string, lang: string]: nothing -> record {
 
 # Detects the current location from IP address via ipapi.co.
 def detect-location []: nothing -> record {
-    let res = (http get 'https://ipapi.co/json/' -m 10sec)
+    let res = (http-get-with-retry 'https://ipapi.co/json/')
     {
         name: ($res.city? | default "Unknown"),
         admin1: ($res.region? | default ""),
@@ -272,15 +296,15 @@ def detect-location []: nothing -> record {
 def fetch-open-meteo [lat: float, lon: float]: nothing -> record {
     let vars_current = "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,visibility,uv_index"
     let vars_hourly = "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
-    let vars_daily = "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant,uv_index_max,snowfall_sum,snow_depth"
+    let vars_daily = "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant,uv_index_max,snowfall_sum"
     let url = $"https://api.open-meteo.com/v1/forecast?latitude=($lat)&longitude=($lon)&current=($vars_current)&hourly=($vars_hourly)&daily=($vars_daily)&timezone=auto&forecast_days=3"
-    http get $url -m 10sec
+    http-get-with-retry $url
 }
 
 # Fetches air quality data from Open-Meteo.
 def fetch-air-quality [lat: float, lon: float]: nothing -> record {
     let url = $"https://air-quality-api.open-meteo.com/v1/air-quality?latitude=($lat)&longitude=($lon)&current=pm2_5,pm10,ozone,nitrogen_dioxide,us_aqi,european_aqi&timezone=auto"
-    http get $url -m 10sec
+    http-get-with-retry $url
 }
 
 # --- Display builders ---
