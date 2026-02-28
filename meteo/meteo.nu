@@ -57,28 +57,31 @@ def format-uv [
     let color: string = if $uv >= 8 { 'red' } else if $uv >= 6 { 'yellow' } else if $uv >= 3 { 'green' } else { 'grey' }
 
     if $icon_mode == 'text' {
-        return $"($uv) ($label)"
+        $"($uv) ($label)"
+    } else {
+        let icon: string = if $icon_mode == 'emoji' { '☀ ' } else { "\u{e30d} " }
+        $"($icon)(ansi $color)($uv) ($label)(ansi reset)"
     }
-
-    let icon: string = if $icon_mode == 'emoji' { '☀ ' } else { "\u{e30d} " }
-    $"($icon)(ansi $color)($uv) ($label)(ansi reset)"
 }
 
 # Formats AQI value with color gradient.
 def format-aqi [val: int, --text]: nothing -> string {
-    if $text { return ($val | into string) }
-    let color: string = if $val <= 50 {
-        '0x00ff00' # Green
-    } else if $val <= 100 {
-        '0xffff00' # Yellow
-    } else if $val <= 150 {
-        '0xffa500' # Orange
-    } else if $val <= 200 {
-        '0xff0000' # Red
+    if $text {
+        ($val | into string)
     } else {
-        '0x800080' # Purple
+        let color: string = if $val <= 50 {
+            '0x00ff00' # Green
+        } else if $val <= 100 {
+            '0xffff00' # Yellow
+        } else if $val <= 150 {
+            '0xffa500' # Orange
+        } else if $val <= 200 {
+            '0xff0000' # Red
+        } else {
+            '0x800080' # Purple
+        }
+        $"($val)" | ansi gradient --fgstart $color --fgend $color
     }
-    $"($val)" | ansi gradient --fgstart $color --fgend $color
 }
 
 # Maps a WMO weather interpretation code to a human-readable description.
@@ -122,8 +125,9 @@ def wmo-icon [
     is_day: bool
     icon_mode: string
 ]: nothing -> string {
-    if $icon_mode == 'text' { return "" }
-    if $icon_mode == 'emoji' {
+    if $icon_mode == 'text' {
+        ""
+    } else if $icon_mode == 'emoji' {
         match $code {
             0             => (if $is_day { "☀️"  } else { "🌙" }),
             1             => (if $is_day { "🌤️" } else { "🌙" }),
@@ -191,27 +195,33 @@ def beaufort-scale [kmph: string]: nothing -> int {
 
 # Returns a Beaufort glyph (Nerd Font) or bracketed label (emoji/text).
 def beaufort-icon [scale: int, icon_mode: string]: nothing -> string {
-    if $icon_mode != 'nerd' { return $"[Bft ($scale)]" }
-    match $scale {
-        0 => "\u{e3af}", 1 => "\u{e3b0}", 2 => "\u{e3b1}", 3 => "\u{e3b2}",
-        4 => "\u{e3b3}", 5 => "\u{e3b4}", 6 => "\u{e3b5}", 7 => "\u{e3b6}",
-        8 => "\u{e3b7}", 9 => "\u{e3b8}", 10 => "\u{e3b9}", 11 => "\u{e3ba}", _ => "\u{e3bb}"
+    if $icon_mode != 'nerd' {
+        $"[Bft ($scale)]"
+    } else {
+        match $scale {
+            0 => "\u{e3af}", 1 => "\u{e3b0}", 2 => "\u{e3b1}", 3 => "\u{e3b2}",
+            4 => "\u{e3b3}", 5 => "\u{e3b4}", 6 => "\u{e3b5}", 7 => "\u{e3b6}",
+            8 => "\u{e3b7}", 9 => "\u{e3b8}", 10 => "\u{e3b9}", 11 => "\u{e3ba}", _ => "\u{e3bb}"
+        }
     }
 }
 
 # Returns a directional arrow glyph (Nerd Font) or raw direction string (emoji/text).
 def wind-dir-icon [dir: string, icon_mode: string]: nothing -> string {
-    if $icon_mode != 'nerd' { return $dir }
-    match ($dir | str upcase) {
-        'N'                   => "\u{e31a}",
-        'NNE' | 'NE' | 'ENE' => "\u{e319}",
-        'E'                   => "\u{e31b}",
-        'ESE' | 'SE' | 'SSE' => "\u{e316}",
-        'S'                   => "\u{e317}",
-        'SSW' | 'SW' | 'WSW' => "\u{e315}",
-        'W'                   => "\u{e314}",
-        'WNW' | 'NW' | 'NNW' => "\u{e318}",
-        _                     => $dir
+    if $icon_mode != 'nerd' {
+        $dir
+    } else {
+        match ($dir | str upcase) {
+            'N'                   => "\u{e31a}",
+            'NNE' | 'NE' | 'ENE' => "\u{e319}",
+            'E'                   => "\u{e31b}",
+            'ESE' | 'SE' | 'SSE' => "\u{e316}",
+            'S'                   => "\u{e317}",
+            'SSW' | 'SW' | 'WSW' => "\u{e315}",
+            'W'                   => "\u{e314}",
+            'WNW' | 'NW' | 'NNW' => "\u{e318}",
+            _                     => $dir
+        }
     }
 }
 
