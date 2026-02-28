@@ -59,7 +59,7 @@ def format-uv [
         return $"($uv) ($label)"
     }
 
-    let icon = if $icon_mode == 'emoji' { '☀ ' } else { ' ' }
+    let icon = if $icon_mode == 'emoji' { '☀ ' } else { "\u{e30d} " }
     $"($icon)(ansi $color)($uv) ($label)(ansi reset)"
 }
 
@@ -126,20 +126,20 @@ def wmo-icon [
     } else {
         # Nerd Font (nf-weather glyphs)
         match $code {
-            0             => (if $is_day { "" } else { "" }),
-            1             => (if $is_day { "" } else { "" }),
-            2             => "",
-            3             => "",
-            45 | 48       => "",
-            51 | 53 | 55  => "",
-            56 | 57       => "",
-            61 | 63       => "",
-            65 | 66 | 67  => "",
-            71 | 73 | 75 | 77 => "",
-            80 | 81 | 82  => "",
-            85 | 86       => "",
-            95 | 96 | 99  => "",
-            _             => ""
+            0             => (if $is_day { "\u{e30d}" } else { "\u{e32b}" }),
+            1             => (if $is_day { "\u{e302}" } else { "\u{e37e}" }),
+            2             => "\u{e302}",
+            3             => "\u{e312}",
+            45 | 48       => "\u{e313}",
+            51 | 53 | 55  => "\u{e308}",
+            56 | 57       => "\u{e321}",
+            61 | 63       => "\u{e318}",
+            65 | 66 | 67  => "\u{e318}",
+            71 | 73 | 75 | 77 => "\u{e31a}",
+            80 | 81 | 82  => "\u{e318}",
+            85 | 86       => "\u{e31a}",
+            95 | 96 | 99  => "\u{e31d}",
+            _             => "\u{e374}"
         }
     }
 }
@@ -175,9 +175,9 @@ def beaufort-scale [kmph: string]: nothing -> int {
 def beaufort-icon [scale: int, icon_mode: string]: nothing -> string {
     if $icon_mode != 'nerd' { return $"[Bft ($scale)]" }
     match $scale {
-        0 => "", 1 => "", 2 => "", 3 => "",
-        4 => "", 5 => "", 6 => "", 7 => "",
-        8 => "", 9 => "", 10 => "", 11 => "", _ => ""
+        0 => "\u{e3af}", 1 => "\u{e3b0}", 2 => "\u{e3b1}", 3 => "\u{e3b2}",
+        4 => "\u{e3b3}", 5 => "\u{e3b4}", 6 => "\u{e3b5}", 7 => "\u{e3b6}",
+        8 => "\u{e3b7}", 9 => "\u{e3b8}", 10 => "\u{e3b9}", 11 => "\u{e3ba}", _ => "\u{e3bb}"
     }
 }
 
@@ -185,14 +185,14 @@ def beaufort-icon [scale: int, icon_mode: string]: nothing -> string {
 def wind-dir-icon [dir: string, icon_mode: string]: nothing -> string {
     if $icon_mode != 'nerd' { return $dir }
     match ($dir | str upcase) {
-        'N'                   => "",
-        'NNE' | 'NE' | 'ENE' => "",
-        'E'                   => "",
-        'ESE' | 'SE' | 'SSE' => "",
-        'S'                   => "",
-        'SSW' | 'SW' | 'WSW' => "",
-        'W'                   => "",
-        'WNW' | 'NW' | 'NNW' => "",
+        'N'                   => "\u{e31a}",
+        'NNE' | 'NE' | 'ENE' => "\u{e319}",
+        'E'                   => "\u{e31b}",
+        'ESE' | 'SE' | 'SSE' => "\u{e316}",
+        'S'                   => "\u{e317}",
+        'SSW' | 'SW' | 'WSW' => "\u{e315}",
+        'W'                   => "\u{e314}",
+        'WNW' | 'NW' | 'NNW' => "\u{e318}",
         _                     => $dir
     }
 }
@@ -295,7 +295,7 @@ def build-current [
     let precip_val = if $units.is_imperial {
         $"($precip_mm * 0.0393701 | math round --precision 2)"
     } else { $"($precip_mm)" }
-    let icon_rain = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☔ ' } else { ' ' }
+    let icon_rain = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☔ ' } else { "\u{e319} " }
     let precip = $"($icon_rain)($precip_val)($units.precip_label)"
 
     # Visibility (API is always metres)
@@ -305,7 +305,7 @@ def build-current [
     } else {
         $"($vis_m / 1000 | math round --precision 1)"
     }
-    let icon_vis = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '👁 ' } else { ' ' }
+    let icon_vis = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '👁 ' } else { "\u{e3ae} " }
     let vis = $"($icon_vis)($vis_val)($units.vis_label)"
 
     # Pressure (API is always hPa)
@@ -315,14 +315,14 @@ def build-current [
     } else {
         $"($press_hpa | math round)"
     }
-    let icon_press = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '⏲ ' } else { ' ' }
+    let icon_press = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '⏲ ' } else { "\u{e372} " }
     let pressure = $"($icon_press)($press_val)($units.press_label)"
 
     # Clouds & humidity
     let clouds = ($cur.cloud_cover? | default 0 | into int)
     let humidity = ($cur.relative_humidity_2m? | default 0 | into int)
-    let icon_cloud = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☁ ' } else { ' ' }
-    let icon_humid = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '💧 ' } else { ' ' }
+    let icon_cloud = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☁ ' } else { "\u{e312} " }
+    let icon_humid = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '💧 ' } else { "\u{e373} " }
 
     # UV
     let uv = ($cur.uv_index? | default 0.0 | math round | into int)
@@ -338,8 +338,8 @@ def build-current [
     let sunset_raw = ($data.daily?.sunset? | default [] | try { first } catch { "" })
     let sr = try { $sunrise_raw | into datetime | format date '%H:%M' } catch { $sunrise_raw }
     let ss = try { $sunset_raw | into datetime | format date '%H:%M' } catch { $sunset_raw }
-    let icon_sr = if $icon_mode == 'text' { 'Sunrise: ' } else if $icon_mode == 'emoji' { '🌅 ' } else { " " }
-    let icon_ss = if $icon_mode == 'text' { 'Sunset: ' } else if $icon_mode == 'emoji' { '🌇 ' } else { " " }
+    let icon_sr = if $icon_mode == 'text' { 'Sunrise: ' } else if $icon_mode == 'emoji' { '🌅 ' } else { "\u{e34c} " }
+    let icon_ss = if $icon_mode == 'text' { 'Sunset: ' } else if $icon_mode == 'emoji' { '🌇 ' } else { "\u{e34d} " }
 
     # Condition string
     let condition = if $icon_mode == 'text' {
@@ -459,8 +459,8 @@ def build-forecast [
         let speed = (to-display-speed $wind_kmh $units)
         let sr = try { $sr_raw | into datetime | format date '%H:%M' } catch { $sr_raw }
         let ss = try { $ss_raw | into datetime | format date '%H:%M' } catch { $ss_raw }
-        let icon_sr = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌅 ' } else { ' ' }
-        let icon_ss = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌇 ' } else { ' ' }
+        let icon_sr = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌅 ' } else { "\u{e34c} " }
+        let icon_ss = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌇 ' } else { "\u{e34d} " }
 
         {
             Date:      ($t | into datetime | format date '%a, %b %d'),
