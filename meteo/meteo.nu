@@ -868,6 +868,7 @@ export def main [
     --test                       # Use a minimal mock payload to test defensive parsing and edge cases.
     --demo                       # Use a varied mock payload to demonstrate color thresholds and states.
 ]: nothing -> any {
+    let start_time: datetime = (date now)
     let icon_mode: string = if $emoji {
         'emoji'
     } else if $text {
@@ -1005,41 +1006,58 @@ export def main [
         return
     }
 
-    if $air     { return (build-air-quality $cached $loc $is_imperial $icon_mode --raw=$raw) }
-    if $hourly {
+    if $air {
+        let out: record = (build-air-quality $cached $loc $is_imperial $icon_mode --raw=$raw)
+        if $raw { return $out }
+        print ($out | table -i false)
+    } else if $hourly {
         let data: list<any> = (build-hourly $cached $units $icon_mode --raw=$raw)
         if $raw { return $data }
         print $"(ansi cyan_bold)Hourly Forecast for ($loc_str)(ansi reset)"
-        return ($data | table -i false)
-    }
-    if $forecast {
+        print ($data | table -i false)
+    } else if $forecast {
         let data: list<any> = (build-forecast $cached $units $icon_mode --raw=$raw)
         if $raw { return $data }
         print $"(ansi cyan_bold)3-Day Forecast for ($loc_str)(ansi reset)"
-        return ($data | table -i false)
+        print ($data | table -i false)
+    } else {
+        # Current weather
+        let output: record = (build-current $cached $loc $units $icon_mode --raw=$raw)
+
+        if $raw { return $output }
+
+        let term_width: int = (term size).columns
+        let tier: string = if $oneline { "oneline"
+        } else if $minimal { "minimal"
+        } else if $compact { "compact"
+        } else if $term_width >= $COL_FULL_WIDTH { "full"
+        } else if $term_width >= $COL_COMPACT_WIDTH { "compact"
+        } else { "minimal" }
+
+        if $tier == "oneline" {
+            print (build-oneline-display $cached $loc_str $units $icon_mode)
+        } else {
+            print (match $tier {
+                "full"    => $output,
+                "compact" => ($output | reject Pressure Visibility Clouds),
+                "minimal" => ($output | reject Pressure Visibility Clouds UV Humidity Feels AQI),
+                _         => $output
+            } | table -i false)
+        }
     }
 
-    # Current weather
-    let output: record = (build-current $cached $loc $units $icon_mode --raw=$raw)
-
-    if $raw { return $output }
-
-    let term_width: int = (term size).columns
-    let tier: string = if $oneline { "oneline"
-    } else if $minimal { "minimal"
-    } else if $compact { "compact"
-    } else if $term_width >= $COL_FULL_WIDTH { "full"
-    } else if $term_width >= $COL_COMPACT_WIDTH { "compact"
-    } else { "minimal" }
-
-    if $tier == "oneline" {
-        return (build-oneline-display $cached $loc_str $units $icon_mode)
+    # --- Timing Footer ---
+    if not ($test or $raw or $json) {
+        if $demo {
+            print $"(ansi light_gray)Fetched in 241ms(ansi reset)"
+        } else {
+            let fetch_duration: duration = ((date now) - $start_time)
+            if $use_cache {
+                let cache_age: duration = ((date now) - (ls $cache_path | get modified | first))
+                print $"(ansi light_gray)Loaded from cache [($cache_age) old](ansi reset)"
+            } else {
+                print $"(ansi light_gray)Fetched in ($fetch_duration)(ansi reset)"
+            }
+        }
     }
-
-    match $tier {
-        "full"    => $output,
-        "compact" => ($output | reject Pressure Visibility Clouds),
-        "minimal" => ($output | reject Pressure Visibility Clouds UV Humidity Feels AQI),
-        _         => $output
-    } | table -i false
 }
