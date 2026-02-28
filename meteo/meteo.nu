@@ -495,11 +495,11 @@ def build-hourly [
         let hour_num: int = try { $t | str substring 11..12 | into int } catch { return null }
         if ($hour_num mod 3) != 0 { return null }
 
-        let temp_celsius: float = try { $hourly.temperature_2m         | get $i } catch { 0.0 }
+        let temp_celsius: float = try { $hourly.temperature_2m         | get $i | default 0.0 } catch { 0.0 }
         let code: int     = try { $hourly.weather_code            | get $i | into int } catch { 0 }
-        let wind_kmh: float = try { $hourly.wind_speed_10m          | get $i } catch { 0.0 }
-        let wind_deg: float = try { $hourly.wind_direction_10m      | get $i } catch { 0.0 }
-        let gust_kmh: float = try { $hourly.wind_gusts_10m          | get $i } catch { 0.0 }
+        let wind_kmh: float = try { $hourly.wind_speed_10m          | get $i | default 0.0 } catch { 0.0 }
+        let wind_deg: float = try { $hourly.wind_direction_10m      | get $i | default 0.0 } catch { 0.0 }
+        let gust_kmh: float = try { $hourly.wind_gusts_10m          | get $i | default 0.0 } catch { 0.0 }
         let precip_probability: int = try { $hourly.precipitation_probability | get $i | into int } catch { 0 }
         let humidity: int = try { $hourly.relative_humidity_2m    | get $i | into int } catch { 0 }
 
@@ -560,13 +560,13 @@ def build-forecast [
         let t: string = $item.item
         let i: int = $item.index
         let code: int      = try { $daily.weather_code                    | get $i | into int } catch { 0 }
-        let temp_max_celsius: float = try { $daily.temperature_2m_max              | get $i } catch { 0.0 }
-        let temp_min_celsius: float = try { $daily.temperature_2m_min              | get $i } catch { 0.0 }
-        let precip_mm: float = try { $daily.precipitation_sum               | get $i } catch { 0.0 }
-        let snow_mm: float   = try { $daily.snowfall_sum                    | get $i } catch { 0.0 }
+        let temp_max_celsius: float = try { $daily.temperature_2m_max              | get $i | default 0.0 } catch { 0.0 }
+        let temp_min_celsius: float = try { $daily.temperature_2m_min              | get $i | default 0.0 } catch { 0.0 }
+        let precip_mm: float = try { $daily.precipitation_sum               | get $i | default 0.0 } catch { 0.0 }
+        let snow_mm: float   = try { $daily.snowfall_sum                    | get $i | default 0.0 } catch { 0.0 }
         let precip_probability: int = try { $daily.precipitation_probability_max   | get $i | into int } catch { 0 }
-        let wind_kmh: float  = try { $daily.wind_speed_10m_max              | get $i } catch { 0.0 }
-        let wind_deg: float  = try { $daily.wind_direction_10m_dominant     | get $i } catch { 0.0 }
+        let wind_kmh: float  = try { $daily.wind_speed_10m_max              | get $i | default 0.0 } catch { 0.0 }
+        let wind_deg: float  = try { $daily.wind_direction_10m_dominant     | get $i | default 0.0 } catch { 0.0 }
         let uv_max: int    = try { $daily.uv_index_max                    | get $i | math round | into int } catch { 0 }
         let sunrise_raw: any = try { $daily.sunrise                         | get $i } catch { "" }
         let sunset_raw: any = try { $daily.sunset                          | get $i } catch { "" }
@@ -719,6 +719,116 @@ def build-config [is_imperial: bool]: nothing -> record {
     }
 }
 
+# --- Mock Data Generators ---
+
+# Returns a minimal two-item fixture mirroring the API response.
+# Intentionally includes nulls and missing keys to test defensive extraction.
+def test-data []: nothing -> record {
+    let today: string = (date now | format date '%Y-%m-%d')
+    {
+        location: {
+            name: "Null Island"
+            country_code: "US"
+        }
+        current: {
+            is_day: null
+            temperature_2m: null
+            weather_code: null
+            pm2_5: null
+            pm10: null
+            us_aqi: null
+            european_aqi: null
+        }
+        hourly: {
+            time: [$"($today)T00:00" $"($today)T03:00"]
+            temperature_2m: [10.0]
+            weather_code: [null 3]
+        }
+        daily: {
+            time: [$today "2026-02-28"]
+            weather_code: [null 0]
+            temperature_2m_max: [null 20.0]
+            temperature_2m_min: [null 10.0]
+            precipitation_sum: [null null]
+        }
+    }
+}
+
+# Returns 8 varied records to exercise every colour threshold, column, and icon state.
+def demo-data []: nothing -> record {
+    let today: string = (date now | format date '%Y-%m-%d')
+    {
+        location: {
+            name: "Demo City"
+            admin1: "Demo State"
+            country_name: "United States"
+            country_code: "US"
+            latitude: 33.5
+            longitude: -85.0
+        }
+        current: {
+            time: $"($today)T12:00"
+            interval: 3600
+            temperature_2m: 30.0
+            relative_humidity_2m: 85
+            apparent_temperature: 35.0
+            is_day: 1
+            precipitation: 10.0
+            weather_code: 95
+            cloud_cover: 100
+            wind_speed_10m: 110.0
+            wind_direction_10m: 180
+            wind_gusts_10m: 130.0
+            pressure_msl: 980.0
+            visibility: 500.0
+            uv_index: 12.0
+            pm2_5: 250.0
+            pm10: 300.0
+            ozone: 150.0
+            nitrogen_dioxide: 100.0
+            us_aqi: 250
+            european_aqi: 250
+        }
+        hourly: {
+            time: [
+                $"($today)T00:00" $"($today)T03:00" $"($today)T06:00" $"($today)T09:00"
+                $"($today)T12:00" $"($today)T15:00" $"($today)T18:00" $"($today)T21:00"
+            ]
+            temperature_2m: [-10.0 0.0 10.0 15.0 20.0 25.0 30.0 40.0]
+            relative_humidity_2m: [20 30 40 50 60 70 80 99]
+            apparent_temperature: [-15.0 -5.0 8.0 15.0 22.0 28.0 35.0 45.0]
+            precipitation_probability: [0 10 20 50 80 100 10 0]
+            weather_code: [0 1 2 3 45 63 73 99]
+            wind_speed_10m: [0.0 5.0 15.0 25.0 40.0 60.0 80.0 110.0]
+            wind_direction_10m: [0 45 90 135 180 225 270 315]
+            wind_gusts_10m: [0.0 10.0 25.0 40.0 60.0 80.0 100.0 130.0]
+        }
+        daily: {
+            time: [
+                $today "2026-02-28" "2026-03-01" "2026-03-02"
+                "2026-03-03" "2026-03-04" "2026-03-05" "2026-03-06"
+            ]
+            weather_code: [0 2 45 63 73 95 99 1]
+            temperature_2m_max: [-5.0 10.0 15.0 20.0 25.0 30.0 35.0 40.0]
+            temperature_2m_min: [-15.0 0.0 5.0 10.0 15.0 20.0 25.0 30.0]
+            sunrise: [
+                "2026-02-27T07:10" "2026-02-28T07:09" "2026-03-01T07:08" "2026-03-02T07:07"
+                "2026-03-03T07:06" "2026-03-04T07:05" "2026-03-05T07:04" "2026-03-06T07:03"
+            ]
+            sunset: [
+                "2026-02-27T18:35" "2026-02-28T18:36" "2026-03-01T18:36" "2026-03-02T18:37"
+                "2026-03-03T18:38" "2026-03-04T18:39" "2026-03-05T18:40" "2026-03-06T18:41"
+            ]
+            precipitation_sum: [0.0 0.0 2.0 25.0 10.0 50.0 80.0 0.0]
+            precipitation_probability_max: [0 10 30 90 100 100 100 5]
+            wind_speed_10m_max: [5.0 15.0 10.0 40.0 60.0 80.0 120.0 20.0]
+            wind_direction_10m_dominant: [0 90 180 270 360 45 135 225]
+            uv_index_max: [1.0 3.0 4.0 2.0 1.0 8.0 11.0 6.0]
+            snowfall_sum: [0.0 0.0 0.0 0.0 15.0 0.0 5.0 0.0]
+        }
+    }
+}
+
 # --- Main command ---
 
 # Fetches and displays weather from Open-Meteo. Fast, no API key required.
@@ -754,7 +864,9 @@ export def main [
     --hourly (-H)                # Show hourly forecast for today (3-hour intervals).
     --clear-cache                # Delete all cached data and exit.
     --lang: string = ""          # Language code for geocoding place names (e.g. 'fr', 'de').
-    --air (-q)                   # Show air quality data (PM2.5, PM10, Ozone, NO2, AQI).
+    --air (-Q)                   # Show air quality data (PM2.5, PM10, Ozone, NO2, AQI).
+    --test                       # Use a minimal mock payload to test defensive parsing and edge cases.
+    --demo                       # Use a varied mock payload to demonstrate color thresholds and states.
 ]: nothing -> any {
     let icon_mode: string = if $emoji {
         'emoji'
@@ -783,7 +895,9 @@ export def main [
     }
     $cache_dir | path join $cache_file | let cache_path: string
     let ttl: duration = if $air { 30min } else { 15min }
-    let use_cache: bool = if $force { false } else { is-cache-valid $cache_path $ttl }
+
+    # Bypass cache completely if forcing fetch, testing, or running demo mode
+    let use_cache: bool = if $force or $test or $demo { false } else { is-cache-valid $cache_path $ttl }
 
     if $debug {
         print $"(ansi cyan)🔍 DEBUG MODE(ansi reset)"
@@ -799,7 +913,11 @@ export def main [
         print ""
     }
 
-    let cached: record = if $use_cache {
+    let cached: record = if $test {
+        test-data
+    } else if $demo {
+        demo-data
+    } else if $use_cache {
         if $debug { print $"(ansi green)✓ Using cached data(ansi reset)\n" }
         open $cache_path
     } else {
@@ -870,6 +988,22 @@ export def main [
     let units: record = (build-config $is_imperial)
 
     let loc_str: string = ($loc | format-loc $is_imperial)
+
+    # If testing, sequentially run and print all display modes to verify defensive logic
+    if $test {
+        print $"(ansi cyan_bold)--- Testing: Oneline ---(ansi reset)"
+        print (build-oneline-display $cached $loc_str $units $icon_mode)
+        print ""
+        print $"(ansi cyan_bold)--- Testing: Air Quality ---(ansi reset)"
+        print (build-air-quality $cached $loc $is_imperial $icon_mode --raw=$raw | table -i false)
+        print $"(ansi cyan_bold)--- Testing: Hourly ---(ansi reset)"
+        print (build-hourly $cached $units $icon_mode --raw=$raw | table -i false)
+        print $"(ansi cyan_bold)--- Testing: Forecast ---(ansi reset)"
+        print (build-forecast $cached $units $icon_mode --raw=$raw | table -i false)
+        print $"(ansi cyan_bold)--- Testing: Current [Full] ---(ansi reset)"
+        print (build-current $cached $loc $units $icon_mode --raw=$raw | table -i false)
+        return
+    }
 
     if $air     { return (build-air-quality $cached $loc $is_imperial $icon_mode --raw=$raw) }
     if $hourly {
