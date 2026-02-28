@@ -337,10 +337,11 @@ def build-hourly-display [today: record, units: record, loc: string, mode: strin
         let t_str = ($hour.time | fill -a r -w 4 -c '0')
         let is_us = ($units.temp_label == '°F')
         let temp = if $is_us { $hour.tempF } else { $hour.tempC }
+        let desc = ($hour.weatherDesc | first | get value)
 
         {
             Time: $"($t_str | str substring 0..1):($t_str | str substring 2..3)",
-            Condition: (if $mode == 'text' { $hour.weatherDesc.0.value } else { $"((weather-icon $hour.weatherCode $mode)) ($hour.weatherDesc.0.value)" }),
+            Condition: (if $mode == 'text' { $desc } else { $"((weather-icon $hour.weatherCode $mode)) ($desc)" }),
             Temp: (format-temp $temp $units --text=($mode == 'text')),
             Wind: $"((wind-dir-icon $hour.winddir16Point $mode)) ($hour | get $units.speed_key)($units.speed_label)",
             Humidity: $"($hour.humidity)%"
@@ -357,11 +358,12 @@ def build-hourly-display [today: record, units: record, loc: string, mode: strin
 def build-forecast-display [weather: list<any>, units: record, loc: string, mode: string, --raw]: nothing -> any {
     let forecast_table = ($weather | compact | each {|day|
         let noon = ($day.hourly | where time == '1200' | append ($day.hourly | first) | first)
+        let desc = ($noon.weatherDesc | first | get value)
         {
             Date: ($day.date | into datetime | format date '%a, %b %d'),
             High: (format-temp ($day | get $units.forecast_max_key) $units --text=($mode == 'text')),
             Low: (format-temp ($day | get $units.forecast_min_key) $units --text=($mode == 'text')),
-            Condition: (if $mode == 'text' { $noon.weatherDesc.0.value } else { $"((weather-icon $noon.weatherCode $mode)) ($noon.weatherDesc.0.value)" }),
+            Condition: (if $mode == 'text' { $desc } else { $"((weather-icon $noon.weatherCode $mode)) ($desc)" }),
             Rain: $"($noon | get $units.precip_key)($units.precip_label)"
         }
     })
@@ -932,13 +934,7 @@ export def main [
 
     let term_width = (term size).columns
 
-    let tier = if $oneline {
-        "oneline"
-    } else if $minimal {
-        "minimal"
-    } else if $compact {
-        "compact"
-    } else if $term_width >= $COL_FULL_WIDTH {
+    let width_tier = if $term_width >= $COL_FULL_WIDTH {
         "full"
     } else if $term_width >= $COL_COMPACT_WIDTH {
         "compact"
@@ -946,6 +942,16 @@ export def main [
         "minimal"
     } else {
         "oneline"
+    }
+
+    let tier = if $oneline {
+        "oneline"
+    } else if $minimal {
+        "minimal"
+    } else if $compact {
+        "compact"
+    } else {
+        $width_tier
     }
 
     if $tier == "oneline" {
