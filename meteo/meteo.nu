@@ -260,34 +260,34 @@ def http-get-with-retry [
 def geocode-city [city: string, lang: string]: nothing -> record {
     let lang_param = if ($lang | is-empty) { "en" } else { $lang }
     let url = $"https://geocoding-api.open-meteo.com/v1/search?name=($city | url encode)&count=1&language=($lang_param)&format=json"
-    let res = (http-get-with-retry $url)
-    if ($res.results? | is-empty) {
+    let response = (http-get-with-retry $url)
+    if ($response.results? | is-empty) {
         error make {
             msg: $"Location not found: '($city)'"
             help: "Try a different spelling or a nearby major city."
         }
     }
-    let r = ($res.results | first)
+    let result = ($response.results | first)
     {
-        name: ($r.name? | default $city),
-        admin1: ($r.admin1? | default ""),
-        country_name: ($r.country? | default "Unknown"),
-        country_code: ($r.country_code? | default ""),
-        latitude: ($r.latitude? | default 0.0),
-        longitude: ($r.longitude? | default 0.0)
+        name: ($result.name? | default $city),
+        admin1: ($result.admin1? | default ""),
+        country_name: ($result.country? | default "Unknown"),
+        country_code: ($result.country_code? | default ""),
+        latitude: ($result.latitude? | default 0.0),
+        longitude: ($result.longitude? | default 0.0)
     }
 }
 
 # Detects the current location from IP address via ipapi.co.
 def detect-location []: nothing -> record {
-    let res = (http-get-with-retry 'https://ipapi.co/json/')
+    let response = (http-get-with-retry 'https://ipapi.co/json/')
     {
-        name: ($res.city? | default "Unknown"),
-        admin1: ($res.region? | default ""),
-        country_name: ($res.country_name? | default "Unknown"),
-        country_code: ($res.country_code? | default "US"),
-        latitude: ($res.latitude? | default 0.0),
-        longitude: ($res.longitude? | default 0.0)
+        name: ($response.city? | default "Unknown"),
+        admin1: ($response.region? | default ""),
+        country_name: ($response.country_name? | default "Unknown"),
+        country_code: ($response.country_code? | default "US"),
+        latitude: ($response.latitude? | default 0.0),
+        longitude: ($response.longitude? | default 0.0)
     }
 }
 
@@ -323,19 +323,19 @@ def build-current [
     let desc = (wmo-desc $code)
 
     # Temps (API is always °C; convert to °F if imperial)
-    let tc = ($cur.temperature_2m? | default 0.0)
-    let fc = ($cur.apparent_temperature? | default 0.0)
-    let temp_display = (format-temp (to-display-temp $tc $units) $units --text=($icon_mode == 'text'))
-    let feels_display = (format-temp (to-display-temp $fc $units) $units --text=($icon_mode == 'text'))
+    let temp_celsius = ($cur.temperature_2m? | default 0.0)
+    let feels_celsius = ($cur.apparent_temperature? | default 0.0)
+    let temp_display = (format-temp (to-display-temp $temp_celsius $units) $units --text=($icon_mode == 'text'))
+    let feels_display = (format-temp (to-display-temp $feels_celsius $units) $units --text=($icon_mode == 'text'))
 
     # Wind (API is always km/h)
     let wind_kmh = ($cur.wind_speed_10m? | default 0.0)
     let wind_deg = ($cur.wind_direction_10m? | default 0.0)
     let wind_dir = (degrees-to-compass $wind_deg)
-    let bft = (beaufort-scale ($wind_kmh | math round | into string))
-    let bft_icon = (beaufort-icon $bft $icon_mode)
+    let beaufort = (beaufort-scale ($wind_kmh | math round | into string))
+    let beaufort_icon = (beaufort-icon $beaufort $icon_mode)
     let wind_speed = (to-display-speed $wind_kmh $units)
-    let wind_icon = if $icon_mode == 'emoji' { $"💨 ($bft_icon) " } else { $"($bft_icon) " }
+    let wind_icon = if $icon_mode == 'emoji' { $"💨 ($beaufort_icon) " } else { $"($beaufort_icon) " }
     let wind = $"($wind_icon)($wind_speed)($units.speed_label) (wind-dir-icon $wind_dir $icon_mode)"
 
     # Precipitation (API is always mm)
@@ -347,14 +347,14 @@ def build-current [
     let precip = $"($icon_rain)($precip_val)($units.precip_label)"
 
     # Visibility (API is always metres)
-    let vis_m = ($cur.visibility? | default 0.0)
-    let vis_val = if $units.is_imperial {
-        $"($vis_m / 1609.34 | math round --precision 1)"
+    let visibility_metres = ($cur.visibility? | default 0.0)
+    let visibility_val = if $units.is_imperial {
+        $"($visibility_metres / 1609.34 | math round --precision 1)"
     } else {
-        $"($vis_m / 1000 | math round --precision 1)"
+        $"($visibility_metres / 1000 | math round --precision 1)"
     }
     let icon_vis = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '👁 ' } else { "\u{e3ae} " }
-    let vis = $"($icon_vis)($vis_val)($units.vis_label)"
+    let visibility = $"($icon_vis)($visibility_val)($units.vis_label)"
 
     # Pressure (API is always hPa)
     let press_hpa = ($cur.pressure_msl? | default 1013.0)
@@ -392,8 +392,8 @@ def build-current [
     # Sunrise / Sunset from today's daily slot
     let sunrise_raw = ($data.daily?.sunrise? | default [] | try { first } catch { "" })
     let sunset_raw = ($data.daily?.sunset? | default [] | try { first } catch { "" })
-    let sr = try { $sunrise_raw | into datetime | format date '%H:%M' } catch { $sunrise_raw }
-    let ss = try { $sunset_raw | into datetime | format date '%H:%M' } catch { $sunset_raw }
+    let sunrise = try { $sunrise_raw | into datetime | format date '%H:%M' } catch { $sunrise_raw }
+    let sunset = try { $sunset_raw | into datetime | format date '%H:%M' } catch { $sunset_raw }
     let icon_sr = if $icon_mode == 'text' { 'Sunrise: ' } else if $icon_mode == 'emoji' { '🌅 ' } else { "\u{e34c} " }
     let icon_ss = if $icon_mode == 'text' { 'Sunset: ' } else if $icon_mode == 'emoji' { '🌇 ' } else { "\u{e34d} " }
 
@@ -414,10 +414,10 @@ def build-current [
         Humidity:    $"($icon_humid)($humidity)%",
         Wind:        $wind,
         Pressure:    $pressure,
-        Visibility:  $vis,
+        Visibility:  $visibility,
         UV:          (format-uv $uv $icon_mode),
         AQI:         $"($icon_aqi)($aqi_display) ($aqi_label)",
-        Astronomy:   $"($icon_sr)($sr) | ($icon_ss)($ss)"
+        Astronomy:   $"($icon_sr)($sunrise) | ($icon_ss)($sunset)"
     }
 
     let gust_kmh = ($cur.wind_gusts_10m? | default 0.0)
@@ -448,25 +448,25 @@ def build-hourly [
         let hour_num = try { $t | str substring 11..12 | into int } catch { return null }
         if ($hour_num mod 3) != 0 { return null }
 
-        let tc       = try { $hourly.temperature_2m         | get $i } catch { 0.0 }
+        let temp_celsius = try { $hourly.temperature_2m         | get $i } catch { 0.0 }
         let code     = try { $hourly.weather_code            | get $i | into int } catch { 0 }
         let wind_kmh = try { $hourly.wind_speed_10m          | get $i } catch { 0.0 }
         let wind_deg = try { $hourly.wind_direction_10m      | get $i } catch { 0.0 }
         let gust_kmh = try { $hourly.wind_gusts_10m          | get $i } catch { 0.0 }
-        let prob     = try { $hourly.precipitation_probability | get $i | into int } catch { 0 }
-        let hum      = try { $hourly.relative_humidity_2m    | get $i | into int } catch { 0 }
+        let precip_probability = try { $hourly.precipitation_probability | get $i | into int } catch { 0 }
+        let humidity = try { $hourly.relative_humidity_2m    | get $i | into int } catch { 0 }
 
         let wind_dir = (degrees-to-compass $wind_deg)
-        let bft = (beaufort-scale ($wind_kmh | math round | into string))
+        let beaufort = (beaufort-scale ($wind_kmh | math round | into string))
         let speed = (to-display-speed $wind_kmh $units)
 
         let row = {
             Time:      ($t | str substring 11..15),
             Condition: (if $icon_mode == 'text' { wmo-desc $code } else { $"(wmo-icon $code true $icon_mode) (wmo-desc $code)" }),
-            Temp:      (format-temp (to-display-temp $tc $units) $units --text=($icon_mode == 'text')),
-            Wind:      $"(wind-dir-icon $wind_dir $icon_mode) ($speed)($units.speed_label) (beaufort-icon $bft $icon_mode)",
-            Precip:    $"($prob)%",
-            Humidity:  $"($hum)%"
+            Temp:      (format-temp (to-display-temp $temp_celsius $units) $units --text=($icon_mode == 'text')),
+            Wind:      $"(wind-dir-icon $wind_dir $icon_mode) ($speed)($units.speed_label) (beaufort-icon $beaufort $icon_mode)",
+            Precip:    $"($precip_probability)%",
+            Humidity:  $"($humidity)%"
         }
 
         if $gust_kmh > 0 {
@@ -498,16 +498,16 @@ def build-forecast [
         let t = $item.item
         let i = $item.index
         let code      = try { $daily.weather_code                    | get $i | into int } catch { 0 }
-        let max_c     = try { $daily.temperature_2m_max              | get $i } catch { 0.0 }
-        let min_c     = try { $daily.temperature_2m_min              | get $i } catch { 0.0 }
+        let temp_max_celsius = try { $daily.temperature_2m_max              | get $i } catch { 0.0 }
+        let temp_min_celsius = try { $daily.temperature_2m_min              | get $i } catch { 0.0 }
         let precip_mm = try { $daily.precipitation_sum               | get $i } catch { 0.0 }
         let snow_mm   = try { $daily.snowfall_sum                    | get $i } catch { 0.0 }
-        let prob      = try { $daily.precipitation_probability_max   | get $i | into int } catch { 0 }
+        let precip_probability = try { $daily.precipitation_probability_max   | get $i | into int } catch { 0 }
         let wind_kmh  = try { $daily.wind_speed_10m_max              | get $i } catch { 0.0 }
         let wind_deg  = try { $daily.wind_direction_10m_dominant     | get $i } catch { 0.0 }
         let uv_max    = try { $daily.uv_index_max                    | get $i | math round | into int } catch { 0 }
-        let sr_raw    = try { $daily.sunrise                         | get $i } catch { "" }
-        let ss_raw    = try { $daily.sunset                          | get $i } catch { "" }
+        let sunrise_raw = try { $daily.sunrise                         | get $i } catch { "" }
+        let sunset_raw = try { $daily.sunset                          | get $i } catch { "" }
 
         let precip_val = if $units.is_imperial {
             $"($precip_mm * 0.0393701 | math round --precision 2)($units.precip_label)"
@@ -521,22 +521,22 @@ def build-forecast [
         }
         let wind_dir = (degrees-to-compass $wind_deg)
         let speed = (to-display-speed $wind_kmh $units)
-        let sr = try { $sr_raw | into datetime | format date '%H:%M' } catch { $sr_raw }
-        let ss = try { $ss_raw | into datetime | format date '%H:%M' } catch { $ss_raw }
+        let sunrise = try { $sunrise_raw | into datetime | format date '%H:%M' } catch { $sunrise_raw }
+        let sunset = try { $sunset_raw | into datetime | format date '%H:%M' } catch { $sunset_raw }
         let icon_sr = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌅 ' } else { "\u{e34c} " }
         let icon_ss = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🌇 ' } else { "\u{e34d} " }
 
         let row = {
             Date:      ($t | into datetime | format date '%a, %b %d'),
             Condition: (if $icon_mode == 'text' { wmo-desc $code } else { $"(wmo-icon $code true $icon_mode) (wmo-desc $code)" }),
-            High:      (format-temp (to-display-temp $max_c $units) $units --text=($icon_mode == 'text')),
-            Low:       (format-temp (to-display-temp $min_c $units) $units --text=($icon_mode == 'text')),
-            Rain:      $"($precip_val) ($prob)%",
+            High:      (format-temp (to-display-temp $temp_max_celsius $units) $units --text=($icon_mode == 'text')),
+            Low:       (format-temp (to-display-temp $temp_min_celsius $units) $units --text=($icon_mode == 'text')),
+            Rain:      $"($precip_val) ($precip_probability)%",
             Snow:      $snow_val,
             Wind:      $"(wind-dir-icon $wind_dir $icon_mode) ($speed)($units.speed_label)",
             UV:        (format-uv $uv_max $icon_mode),
-            Sunrise:   $"($icon_sr)($sr)",
-            Sunset:    $"($icon_ss)($ss)"
+            Sunrise:   $"($icon_sr)($sunrise)",
+            Sunset:    $"($icon_ss)($sunset)"
         }
 
         if $has_snow { $row } else { $row | reject Snow }
@@ -554,20 +554,20 @@ def build-air-quality [
     is_imperial: bool
     icon_mode: string
 ]: nothing -> record {
-    let cur = ($data.current? | default {})
-    let pm25 = ($cur.pm2_5? | default 0)
-    let pm10 = ($cur.pm10? | default 0)
-    let o3 = ($cur.ozone? | default 0)
-    let no2 = ($cur.nitrogen_dioxide? | default 0)
-    let us_aqi = ($cur.us_aqi? | default 0)
-    let eu_aqi = ($cur.european_aqi? | default 0)
+    let current = ($data.current? | default {})
+    let pm2_5 = ($current.pm2_5? | default 0)
+    let pm10_val = ($current.pm10? | default 0)
+    let ozone = ($current.ozone? | default 0)
+    let nitrogen_dioxide = ($current.nitrogen_dioxide? | default 0)
+    let us_aqi = ($current.us_aqi? | default 0)
+    let eu_aqi = ($current.european_aqi? | default 0)
 
     {
         Location: ($loc | format-loc $is_imperial),
-        "PM2.5":  $"($pm25) µg/m³",
-        "PM10":   $"($pm10) µg/m³",
-        "Ozone":  $"($o3) µg/m³",
-        "NO2":    $"($no2) µg/m³",
+        "PM2.5":  $"($pm2_5) µg/m³",
+        "PM10":   $"($pm10_val) µg/m³",
+        "Ozone":  $"($ozone) µg/m³",
+        "NO2":    $"($nitrogen_dioxide) µg/m³",
         "US AQI": (format-aqi $us_aqi --text=($icon_mode == 'text')),
         "EU AQI": (format-aqi $eu_aqi --text=($icon_mode == 'text'))
     }
