@@ -648,9 +648,9 @@ def build-config [is_imperial: bool]: nothing -> record {
 #   > meteo -3                   # 3-day forecast
 #   > meteo -H                   # Hourly breakdown for today
 #   > meteo -1                   # One-line summary
-#   > meteo -e "London"          # Emoji icons
+#   > meteo -E "London"          # Emoji icons
 #   > meteo -q "Paris"           # Air quality
-#   > meteo -t -r "Berlin" | to json  # Pipe-friendly serialisation
+#   > meteo -T -r "Berlin" | to json  # Pipe-friendly serialisation
 export def main [
     city: string = ""            # Location to fetch weather for. Leave empty to auto-detect.
     --raw (-r)                   # Return raw record instead of a formatted table.
@@ -662,8 +662,8 @@ export def main [
     --compact (-c)               # Compact output (drops Pressure, Visibility, Clouds).
     --minimal (-M)               # Minimal output (also drops UV, Humidity, Feels).
     --json (-j)                  # Return the full raw API response as data.
-    --emoji (-e)                 # Use emoji icons instead of Nerd Font glyphs.
-    --text (-t)                  # Plain text output — no icons, no colours.
+    --emoji (-E)                 # Use emoji icons instead of Nerd Font glyphs.
+    --text (-T)                  # Plain text output — no icons, no colours.
     --force (-f)                 # Bypass cache and force a fresh network request.
     --hourly (-H)                # Show hourly forecast for today (3-hour intervals).
     --clear-cache                # Delete all cached data and exit.
