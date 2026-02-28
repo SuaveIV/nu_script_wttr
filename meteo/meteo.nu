@@ -443,10 +443,8 @@ def build-current [
 def build-hourly [
     data: record
     units: record
-    loc_str: string
     icon_mode: string
-    --raw
-]: nothing -> any {
+]: nothing -> list<any> {
     let hourly: record = ($data.hourly? | default {time: []})
     let times: list<string> = ($hourly.time? | default [])
     let today: string = (date now | format date '%Y-%m-%d')
@@ -487,19 +485,15 @@ def build-hourly [
         }
     } | compact)
 
-    if $raw { return $rows }
-    print $"(ansi cyan_bold)Hourly Forecast for ($loc_str)(ansi reset)"
-    $rows | table -i false
+    $rows
 }
 
 # Builds the 3-day forecast table.
 def build-forecast [
     data: record
     units: record
-    loc_str: string
     icon_mode: string
-    --raw
-]: nothing -> any {
+]: nothing -> list<any> {
     let daily: record = ($data.daily? | default {time: []})
     let times: list<string> = ($daily.time? | default [])
     let has_snow: bool = ($daily.snowfall_sum? | default [] | any {|x| $x > 0})
@@ -552,9 +546,7 @@ def build-forecast [
         if $has_snow { $row } else { $row | reject Snow }
     })
 
-    if $raw { return $rows }
-    print $"(ansi cyan_bold)3-Day Forecast for ($loc_str)(ansi reset)"
-    $rows | table -i false
+    $rows
 }
 
 # Builds the air quality display record.
@@ -581,6 +573,21 @@ def build-air-quality [
         "US AQI": (format-aqi $us_aqi --text=($icon_mode == 'text')),
         "EU AQI": (format-aqi $eu_aqi --text=($icon_mode == 'text'))
     }
+}
+
+# Builds the one-line summary string.
+def build-oneline-display [
+    data: record
+    loc_str: string
+    units: record
+    icon_mode: string
+]: nothing -> string {
+    let code: int = ($data.current?.weather_code? | default 0 | into int)
+    let is_day: bool = ($data.current?.is_day? | default 1 | into bool)
+    let tc: float = ($data.current?.temperature_2m? | default 0.0)
+    let temp_val: string = (to-display-temp $tc $units)
+    let icon: string = if $icon_mode == 'text' { '' } else { $"(wmo-icon $code $is_day $icon_mode) " }
+    $"($loc_str): ($icon)($temp_val)($units.temp_label) - (wmo-desc $code)"
 }
 
 # --- Unit conversion helpers ---
@@ -613,6 +620,15 @@ def format-loc [is_imperial: bool]: record -> string {
         $"($name), ($admin1)"
     } else {
         $"($name), ($country)"
+    }
+}
+
+# Returns the unit configuration record based on the system (Imperial vs Metric).
+def build-config [is_imperial: bool]: nothing -> record {
+    if $is_imperial {
+        {is_imperial: true,  temp_label: "°F", speed_label: "mph", precip_label: "in",  vis_label: "mi",  press_label: "inHg", hot_limit: 80, cold_limit: 40}
+    } else {
+        {is_imperial: false, temp_label: "°C", speed_label: "km/h", precip_label: "mm", vis_label: "km",  press_label: "hPa",  hot_limit: 27, cold_limit: 4}
     }
 }
 
@@ -764,17 +780,23 @@ export def main [
         print ""
     }
 
-    let units: record = if $is_imperial {
-        {is_imperial: true,  temp_label: "°F", speed_label: "mph", precip_label: "in",  vis_label: "mi",  press_label: "inHg", hot_limit: 80, cold_limit: 40}
-    } else {
-        {is_imperial: false, temp_label: "°C", speed_label: "km/h", precip_label: "mm", vis_label: "km",  press_label: "hPa",  hot_limit: 27, cold_limit: 4}
-    }
+    let units: record = (build-config $is_imperial)
 
     let loc_str: string = ($loc | format-loc $is_imperial)
 
     if $air     { return (build-air-quality $cached $loc $is_imperial $icon_mode) }
-    if $hourly  { return (build-hourly  $cached $units $loc_str $icon_mode --raw=$raw) }
-    if $forecast { return (build-forecast $cached $units $loc_str $icon_mode --raw=$raw) }
+    if $hourly {
+        let data: list<any> = (build-hourly $cached $units $icon_mode)
+        if $raw { return $data }
+        print $"(ansi cyan_bold)Hourly Forecast for ($loc_str)(ansi reset)"
+        return ($data | table -i false)
+    }
+    if $forecast {
+        let data: list<any> = (build-forecast $cached $units $icon_mode)
+        if $raw { return $data }
+        print $"(ansi cyan_bold)3-Day Forecast for ($loc_str)(ansi reset)"
+        return ($data | table -i false)
+    }
 
     # Current weather
     let output: record = (build-current $cached $loc $units $icon_mode)
@@ -790,12 +812,7 @@ export def main [
     } else { "minimal" }
 
     if $tier == "oneline" {
-        let code: int = ($cached.current?.weather_code? | default 0 | into int)
-        let is_day: bool = ($cached.current?.is_day? | default 1 | into bool)
-        let tc: float = ($cached.current?.temperature_2m? | default 0.0)
-        let temp_val: string = (to-display-temp $tc $units)
-        let icon: string = if $icon_mode == 'text' { '' } else { $"(wmo-icon $code $is_day $icon_mode) " }
-        return $"($loc_str): ($icon)($temp_val)($units.temp_label) - (wmo-desc $code)"
+        return (build-oneline-display $cached $loc_str $units $icon_mode)
     }
 
     match $tier {
