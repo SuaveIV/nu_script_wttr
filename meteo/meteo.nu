@@ -256,8 +256,8 @@ def wind-dir-icon [dir: string, icon_mode: string]: nothing -> string {
 
 # Resolves (and creates if needed) the weather cache directory.
 def resolve-cache-dir [subdir: string]: nothing -> string {
-    $nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp') | let base: string
-    $base | path join $subdir | let cache_dir: string
+    let base: string = $nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp')
+    let cache_dir: string = $base | path join $subdir
     if not ($cache_dir | path exists) { mkdir $cache_dir }
     $cache_dir
 }
