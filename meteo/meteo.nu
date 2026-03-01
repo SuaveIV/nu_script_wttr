@@ -203,7 +203,7 @@ def degrees-to-compass [degrees: number]: nothing -> string {
 }
 
 # Converts a wind speed in km/h to its Beaufort scale number (0–12).
-def beaufort-scale [kmph: string]: nothing -> int {
+def beaufort-scale [kmph: number]: nothing -> int {
     let k: int = ($kmph | into int)
     match $k {
         $x if $x < 1   => 0,
@@ -430,7 +430,7 @@ def build-current [
         let temp_display: string = (format-temp (to-display-temp $temp_celsius $units) $units --text=($icon_mode == 'text'))
         let feels_display: string = (format-temp (to-display-temp $feels_celsius $units) $units --text=($icon_mode == 'text'))
 
-        let beaufort: int = (beaufort-scale ($wind_kmh | math round | into string))
+        let beaufort: int = (beaufort-scale ($wind_kmh | math round))
         let beaufort_icon: string = (beaufort-icon $beaufort $icon_mode)
         let wind_speed: string = (to-display-speed $wind_kmh $units)
         let wind_icon: string = if $icon_mode == 'emoji' { $"💨 ($beaufort_icon) " } else { $"($beaufort_icon) " }
@@ -555,7 +555,7 @@ def build-hourly [
             }
             if $gust_val > 0 { $row | insert WindGusts $gust_val } else { $row }
         } else {
-            let beaufort: int = (beaufort-scale ($wind_kmh | math round | into string))
+            let beaufort: int = (beaufort-scale ($wind_kmh | math round))
             let speed: string = (to-display-speed $wind_kmh $units)
 
             let row: record = {
