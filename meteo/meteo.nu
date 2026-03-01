@@ -932,7 +932,7 @@ export def main [
         'text'
     }
 
-    resolve-cache-dir 'nu_meteo_cache' | let cache_dir: string
+    let cache_dir: string = (resolve-cache-dir 'nu_meteo_cache')
 
     if $clear_cache {
         rm -rf $cache_dir
