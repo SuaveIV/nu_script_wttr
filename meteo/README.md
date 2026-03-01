@@ -18,7 +18,7 @@ Cache entries expire after 15 minutes. Units default to metric or imperial based
 use scripts/meteo.nu
 ```
 
-Nerd Font icons are off by default. To enable them, set `$env.NERD_FONTS = "1"` in your config. You can also use `-e` for emojis or `-t` for plain text.
+Nerd Font icons are off by default. To enable them, set `$env.NERD_FONTS = "1"` in your config. You can also use `-E` for emojis or `-T` for plain text.
 
 ## Screenshots
 
@@ -92,9 +92,9 @@ The flags mostly match `weather.nu`, with a few exceptions:
 
 ```nushell
 meteo -r "New York" | get Temperature
-meteo -3 -r -t "London" | where High =~ "2"
+meteo -3 -r -T "London" | where High =~ "2"
 meteo -1 "Seoul" | str upcase
-meteo -r -t "Berlin" | to json
+meteo -r -T "Berlin" | to json
 ```
 
 ## Cache
