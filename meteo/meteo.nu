@@ -18,6 +18,13 @@ const COL_FULL_WIDTH    = 100
 const COL_COMPACT_WIDTH = 80
 const COL_MINIMAL_WIDTH = 60
 
+# Temperature gradient definitions (unit-agnostic)
+const TEMP_GRADIENTS = {
+    hot:  {s: '0xffff00', e: '0xff0000'},
+    cold: {s: '0xffffff', e: '0x00ffff'},
+    mild: {s: '0x00ff00', e: '0xffff00'}
+}
+
 # Unit configuration records
 const METRIC_UNITS = {
     is_imperial: false,
@@ -28,11 +35,7 @@ const METRIC_UNITS = {
     press_label: "hPa",
     hot_limit: 27,
     cold_limit: 4,
-    gradients: {
-        hot:  {s: '0xffff00', e: '0xff0000'},
-        cold: {s: '0xffffff', e: '0x00ffff'},
-        mild: {s: '0x00ff00', e: '0xffff00'}
-    }
+    gradients: $TEMP_GRADIENTS
 }
 
 const IMPERIAL_UNITS = {
@@ -44,11 +47,7 @@ const IMPERIAL_UNITS = {
     press_label: "inHg",
     hot_limit: 80,
     cold_limit: 40,
-    gradients: {
-        hot:  {s: '0xffff00', e: '0xff0000'},
-        cold: {s: '0xffffff', e: '0x00ffff'},
-        mild: {s: '0x00ff00', e: '0xffff00'}
-    }
+    gradients: $TEMP_GRADIENTS
 }
 
 # --- Shared helpers (mirrors weather.nu conventions) ---
@@ -709,7 +708,8 @@ def build-oneline-display [
     let tc: float = ($data.current?.temperature_2m? | default 0.0)
     let temp_val: string = (to-display-temp $tc $units)
     let icon: string = if $icon_mode == 'text' { '' } else { $"(wmo-icon $code $is_day $icon_mode) " }
-    $"($loc_str): ($icon)($temp_val)($units.temp_label) - (wmo-desc $code)"
+    let temp_display: string = (format-temp $temp_val $units --text=($icon_mode == 'text'))
+    $"($loc_str): ($icon)($temp_display) - (wmo-desc $code)"
 }
 
 # --- Unit conversion helpers ---
