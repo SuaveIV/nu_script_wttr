@@ -18,6 +18,39 @@ const COL_FULL_WIDTH    = 100
 const COL_COMPACT_WIDTH = 80
 const COL_MINIMAL_WIDTH = 60
 
+# Unit configuration records
+const METRIC_UNITS = {
+    is_imperial: false,
+    temp_label: "°C",
+    speed_label: "km/h",
+    precip_label: "mm",
+    vis_label: "km",
+    press_label: "hPa",
+    hot_limit: 27,
+    cold_limit: 4,
+    gradients: {
+        hot:  {s: '0xffff00', e: '0xff0000'},
+        cold: {s: '0xffffff', e: '0x00ffff'},
+        mild: {s: '0x00ff00', e: '0xffff00'}
+    }
+}
+
+const IMPERIAL_UNITS = {
+    is_imperial: true,
+    temp_label: "°F",
+    speed_label: "mph",
+    precip_label: "in",
+    vis_label: "mi",
+    press_label: "inHg",
+    hot_limit: 80,
+    cold_limit: 40,
+    gradients: {
+        hot:  {s: '0xffff00', e: '0xff0000'},
+        cold: {s: '0xffffff', e: '0x00ffff'},
+        mild: {s: '0x00ff00', e: '0xffff00'}
+    }
+}
+
 # --- Shared helpers (mirrors weather.nu conventions) ---
 
 # Formats a temperature string with unit label and optional ANSI colour gradient.
@@ -710,15 +743,10 @@ def format-loc [is_imperial: bool]: record -> string {
 
 # Returns the unit configuration record based on the system (Imperial vs Metric).
 def build-config [is_imperial: bool]: nothing -> record {
-    let gradients = {
-        hot:  {s: '0xffff00', e: '0xff0000'}
-        cold: {s: '0xffffff', e: '0x00ffff'}
-        mild: {s: '0x00ff00', e: '0xffff00'}
-    }
     if $is_imperial {
-        {is_imperial: true,  temp_label: "°F", speed_label: "mph", precip_label: "in",  vis_label: "mi",  press_label: "inHg", hot_limit: 80, cold_limit: 40, gradients: $gradients}
+        $IMPERIAL_UNITS
     } else {
-        {is_imperial: false, temp_label: "°C", speed_label: "km/h", precip_label: "mm", vis_label: "km",  press_label: "hPa",  hot_limit: 27, cold_limit: 4, gradients: $gradients}
+        $METRIC_UNITS
     }
 }
 
