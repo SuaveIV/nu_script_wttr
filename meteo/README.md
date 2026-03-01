@@ -1,10 +1,10 @@
 # nu_script_meteo
 
-A fast weather script for [Nushell](https://www.nushell.sh/) that pulls data from [Open-Meteo](https://open-meteo.com) — no API keys or accounts needed. It's built to be faster than `wttr.in`.
+A fast weather script for [Nushell](https://www.nushell.sh/) that pulls data from [Open-Meteo](https://open-meteo.com) — no API keys needed.
 
-If you use `weather.nu`, this is a good companion for when you just want current conditions or a quick forecast without waiting. Open-Meteo doesn't provide moon or astronomy data, but the script handles current conditions (including gusts), hourly breakdowns, and 3-day forecasts with UV index, air quality, and snowfall.
+If you use `weather.nu`, this fits alongside it for when you just want current conditions or a quick forecast without waiting. Open-Meteo doesn't have moon or astronomy data, but the script covers current conditions (including gusts), hourly breakdowns, and 3-day forecasts with UV index, air quality, and snowfall. When air quality data isn't available, it shows "N/A" instead of zeros.
 
-Responses stay in the cache for 15 minutes. Units switch between metric and imperial based on your country, but you can force either with a flag. When air quality data isn't available, the script honestly shows "N/A" instead of misleading zeros.
+Cache entries expire after 15 minutes. Units default to metric or imperial based on your country, but you can force either with a flag.
 
 ## Installation
 
@@ -30,11 +30,11 @@ Nerd Font icons are off by default. To enable them, set `$env.NERD_FONTS = "1"` 
 
 <img width="991" height="328" alt="image" src="https://github.com/user-attachments/assets/e168efec-703b-43d6-abd7-676e9cc4ab4f" />
 
-### 3-Day Forecast
+### 3-day forecast
 
 <img width="1470" height="333" alt="image" src="https://github.com/user-attachments/assets/4a539bc0-000c-4465-88bb-134fcaf40f2b" />
 
-### Air Quality
+### Air quality
 
 <img width="420" height="261" alt="image" src="https://github.com/user-attachments/assets/157dcb5d-6e07-4a0a-9c99-c75d1d79e27e" />
 
@@ -82,11 +82,11 @@ The flags mostly match `weather.nu`, with a few exceptions:
 - **No moon data:** Open-Meteo doesn't include moon phases in the free tier. Sunrise and sunset are still shown.
 - **No `~` or `@` syntax:** Use city names. Open-Meteo's geocoder won't resolve landmarks or domains.
 - **Extra data:** Includes UV index (color-coded), AQI, and snowfall in the forecast views.
-- **Language support:** The `--lang` flag only affects how place names are displayed in geocoding results. All weather descriptions remain in English since they come from a local lookup table.
+- **Language support:** `--lang` only affects how place names appear in geocoding results. Weather descriptions stay in English since they come from a local lookup table.
 
 ## Compact and minimal views
 
-The `-C` (compact) and `-M` (minimal) flags only work with the current weather view. They don't affect hourly or forecast displays, which have their own fixed layouts.
+`-C` (compact) and `-M` (minimal) only apply to the current weather view. Hourly and forecast displays have their own fixed layouts and aren't affected.
 
 ## Piping
 
@@ -99,9 +99,9 @@ meteo -r -t "Berlin" | to json
 
 ## Cache
 
-Data is saved to `nu_meteo_cache` in your Nushell cache directory. This is separate from `weather.nu` to avoid conflicts.
+Data is saved to `nu_meteo_cache` in your Nushell cache directory, separate from `weather.nu` to avoid conflicts.
 
 ## Data sources
 
-- Weather & Geocoding: [Open-Meteo](https://open-meteo.com)
-- IP Location: [ipapi.co](https://ipapi.co)
+- Weather & geocoding: [Open-Meteo](https://open-meteo.com)
+- IP location: [ipapi.co](https://ipapi.co)
