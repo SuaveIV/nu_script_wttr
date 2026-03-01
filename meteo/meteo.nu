@@ -464,7 +464,7 @@ def build-current [
         let aqi_val: int = if $units.is_imperial { $us_aqi } else { $eu_aqi }
         let aqi_label: string = if $units.is_imperial { "AQI (US)" } else { "AQI (EU)" }
         let aqi_display: string = if ($us_aqi == 0 and $eu_aqi == 0) {
-            if $icon_mode == 'text' { "N/A" } else { "N/A" }
+            "N/A"
         } else {
             (format-aqi $aqi_val --text=($icon_mode == 'text'))
         }
