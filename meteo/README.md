@@ -23,17 +23,20 @@ Nerd Font icons are off by default. To enable them, set `$env.NERD_FONTS = "1"` 
 ## Screenshots
 
 ### Normal
+
 <img width="439" height="418" alt="image" src="https://github.com/user-attachments/assets/a968e1b9-30da-467d-8290-5399cbe882f7" />
 
 ### Hourly
+
 <img width="991" height="328" alt="image" src="https://github.com/user-attachments/assets/e168efec-703b-43d6-abd7-676e9cc4ab4f" />
 
 ### 3-Day Forecast
+
 <img width="1470" height="333" alt="image" src="https://github.com/user-attachments/assets/4a539bc0-000c-4465-88bb-134fcaf40f2b" />
 
 ### Air Quality
-<img width="420" height="261" alt="image" src="https://github.com/user-attachments/assets/157dcb5d-6e07-4a0a-9c99-c75d1d79e27e" />
 
+<img width="420" height="261" alt="image" src="https://github.com/user-attachments/assets/157dcb5d-6e07-4a0a-9c99-c75d1d79e27e" />
 
 ## Usage
 

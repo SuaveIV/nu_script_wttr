@@ -481,12 +481,17 @@ def build-hourly [
     let times: list<string> = ($hourly.time? | default [])
     let today: string = (date now | format date '%Y-%m-%d')
 
-    let rows: list<record> = ($times | enumerate | each {|item|
+    let rows: list<record> = ($times | enumerate | where {|item|
+        let t = $item.item
+        if not ($t | str starts-with $today) {
+            false
+        } else {
+            let h = ($t | into datetime | format date '%H' | into int)
+            ($h mod 3) == 0
+        }
+    } | each {|item|
         let t: string = $item.item
         let i: int = $item.index
-        if not ($t | str starts-with $today) { return null }
-        let hour_num: int = try { $t | str substring 11..12 | into int } catch { return null }
-        if ($hour_num mod 3) != 0 { return null }
 
         let temp_celsius: float = try { $hourly.temperature_2m         | get $i | default 0.0 } catch { 0.0 }
         let code: int     = try { $hourly.weather_code            | get $i | into int } catch { 0 }
@@ -533,7 +538,7 @@ def build-hourly [
                 $row
             }
         }
-    } | compact)
+    })
 
     $rows
 }
