@@ -110,42 +110,46 @@ def format-aqi [val: int, --text]: nothing -> string {
     }
 }
 
+# WMO weather interpretation code to human-readable description lookup table
+const WMO_DESCRIPTIONS = {
+    0: "Clear Sky",
+    1: "Mainly Clear",
+    2: "Partly Cloudy",
+    3: "Overcast",
+    45: "Fog",
+    48: "Icy Fog",
+    51: "Light Drizzle",
+    53: "Drizzle",
+    55: "Heavy Drizzle",
+    56: "Light Freezing Drizzle",
+    57: "Freezing Drizzle",
+    61: "Light Rain",
+    63: "Rain",
+    65: "Heavy Rain",
+    66: "Light Freezing Rain",
+    67: "Freezing Rain",
+    71: "Light Snow",
+    73: "Snow",
+    75: "Heavy Snow",
+    77: "Snow Grains",
+    80: "Light Showers",
+    81: "Showers",
+    82: "Heavy Showers",
+    85: "Snow Showers",
+    86: "Heavy Snow Showers",
+    95: "Thunderstorm",
+    96: "Thunderstorm with Hail",
+    99: "Thunderstorm with Heavy Hail"
+}
+
 # Maps a WMO weather interpretation code to a human-readable description.
 def wmo-desc [code: int]: nothing -> string {
-    match $code {
-        0  => "Clear Sky",
-        1  => "Mainly Clear",
-        2  => "Partly Cloudy",
-        3  => "Overcast",
-        45 => "Fog",
-        48 => "Icy Fog",
-        51 => "Light Drizzle",
-        53 => "Drizzle",
-        55 => "Heavy Drizzle",
-        56 => "Light Freezing Drizzle",
-        57 => "Freezing Drizzle",
-        61 => "Light Rain",
-        63 => "Rain",
-        65 => "Heavy Rain",
-        66 => "Light Freezing Rain",
-        67 => "Freezing Rain",
-        71 => "Light Snow",
-        73 => "Snow",
-        75 => "Heavy Snow",
-        77 => "Snow Grains",
-        80 => "Light Showers",
-        81 => "Showers",
-        82 => "Heavy Showers",
-        85 => "Snow Showers",
-        86 => "Heavy Snow Showers",
-        95 => "Thunderstorm",
-        96 => "Thunderstorm with Hail",
-        99 => "Thunderstorm with Heavy Hail",
-        _  => "Unknown"
-    }
+    $WMO_DESCRIPTIONS | get -o ($code | into string) | default "Unknown"
 }
 
 # Returns a weather icon for a WMO code. Supports nerd/emoji/text modes.
+# Note: wmo-icon contains nested emoji/nerd structures that don't translate cleanly
+# to a simple const record lookup like wmo-desc. Keeping it as a match for now.
 def wmo-icon [
     code: int
     is_day: bool
