@@ -23,7 +23,7 @@ const COL_MINIMAL_WIDTH = 60
 # Formats a temperature string with unit label and optional ANSI colour gradient.
 def format-temp [
     val: string
-    units: record<temp_label: string, hot_limit: int, cold_limit: int>
+    units: record
     --text
 ]: nothing -> string {
     let temp_int: int = ($val | into int)
@@ -31,11 +31,11 @@ def format-temp [
         $"($val)($units.temp_label)"
     } else {
         let gradient: record = if $temp_int >= $units.hot_limit {
-            {s: '0xffff00', e: '0xff0000'}
+            $units.gradients.hot
         } else if $temp_int <= $units.cold_limit {
-            {s: '0xffffff', e: '0x00ffff'}
+            $units.gradients.cold
         } else {
-            {s: '0x00ff00', e: '0xffff00'}
+            $units.gradients.mild
         }
         $"($val)($units.temp_label)" | ansi gradient --fgstart $gradient.s --fgend $gradient.e
     }
@@ -710,24 +710,38 @@ def format-loc [is_imperial: bool]: record -> string {
 
 # Returns the unit configuration record based on the system (Imperial vs Metric).
 def build-config [is_imperial: bool]: nothing -> record {
+    let gradients = {
+        hot:  {s: '0xffff00', e: '0xff0000'}
+        cold: {s: '0xffffff', e: '0x00ffff'}
+        mild: {s: '0x00ff00', e: '0xffff00'}
+    }
     if $is_imperial {
-        {is_imperial: true,  temp_label: "°F", speed_label: "mph", precip_label: "in",  vis_label: "mi",  press_label: "inHg", hot_limit: 80, cold_limit: 40}
+        {is_imperial: true,  temp_label: "°F", speed_label: "mph", precip_label: "in",  vis_label: "mi",  press_label: "inHg", hot_limit: 80, cold_limit: 40, gradients: $gradients}
     } else {
-        {is_imperial: false, temp_label: "°C", speed_label: "km/h", precip_label: "mm", vis_label: "km",  press_label: "hPa",  hot_limit: 27, cold_limit: 4}
+        {is_imperial: false, temp_label: "°C", speed_label: "km/h", precip_label: "mm", vis_label: "km",  press_label: "hPa",  hot_limit: 27, cold_limit: 4, gradients: $gradients}
     }
 }
 
 # --- Mock Data Generators ---
 
+# Returns a minimal location fixture for testing.
+def test-location []: nothing -> record {
+    {
+        name: "Null Island"
+        admin1: ""
+        country_name: "Testland"
+        country_code: "XX"
+        latitude: 0.0
+        longitude: 0.0
+    }
+}
+
 # Returns a minimal two-item fixture mirroring the API response.
 # Intentionally includes nulls and missing keys to test defensive extraction.
 def test-data []: nothing -> record {
     let today: string = (date now | format date '%Y-%m-%d')
+    let tomorrow: string = ((date now) + 1day | format date '%Y-%m-%d')
     {
-        location: {
-            name: "Null Island"
-            country_code: "US"
-        }
         current: {
             is_day: null
             temperature_2m: null
@@ -743,7 +757,7 @@ def test-data []: nothing -> record {
             weather_code: [null 3]
         }
         daily: {
-            time: [$today "2026-02-28"]
+            time: [$today $tomorrow]
             weather_code: [null 0]
             temperature_2m_max: [null 20.0]
             temperature_2m_min: [null 10.0]
@@ -752,20 +766,36 @@ def test-data []: nothing -> record {
     }
 }
 
+# Returns a location fixture for demo mode.
+def demo-location []: nothing -> record {
+    {
+        name: "Demo City"
+        admin1: "Demo State"
+        country_name: "United States"
+        country_code: "US"
+        latitude: 33.5
+        longitude: -85.0
+    }
+}
+
 # Returns 8 varied records to exercise every colour threshold, column, and icon state.
 def demo-data []: nothing -> record {
-    let today: string = (date now | format date '%Y-%m-%d')
+    let now = (date now)
+    let today_str = ($now | format date '%Y-%m-%d')
+    let dates = (0..7 | each {|i| $now + ($i * 1day) | format date '%Y-%m-%d'})
+    let sunrises = ($dates | enumerate | each {|d|
+        let min = 10 - $d.index
+        let min_str = if $min < 10 { $"0($min)" } else { $min }
+        $"($d.item)T07:($min_str)"
+    })
+    let sunsets = ($dates | enumerate | each {|d|
+        let min = 35 + $d.index
+        $"($d.item)T18:($min)"
+    })
+
     {
-        location: {
-            name: "Demo City"
-            admin1: "Demo State"
-            country_name: "United States"
-            country_code: "US"
-            latitude: 33.5
-            longitude: -85.0
-        }
         current: {
-            time: $"($today)T12:00"
+            time: $"($today_str)T12:00"
             interval: 3600
             temperature_2m: 30.0
             relative_humidity_2m: 85
@@ -789,8 +819,8 @@ def demo-data []: nothing -> record {
         }
         hourly: {
             time: [
-                $"($today)T00:00" $"($today)T03:00" $"($today)T06:00" $"($today)T09:00"
-                $"($today)T12:00" $"($today)T15:00" $"($today)T18:00" $"($today)T21:00"
+                $"($today_str)T00:00" $"($today_str)T03:00" $"($today_str)T06:00" $"($today_str)T09:00"
+                $"($today_str)T12:00" $"($today_str)T15:00" $"($today_str)T18:00" $"($today_str)T21:00"
             ]
             temperature_2m: [-10.0 0.0 10.0 15.0 20.0 25.0 30.0 40.0]
             relative_humidity_2m: [20 30 40 50 60 70 80 99]
@@ -802,21 +832,12 @@ def demo-data []: nothing -> record {
             wind_gusts_10m: [0.0 10.0 25.0 40.0 60.0 80.0 100.0 130.0]
         }
         daily: {
-            time: [
-                $today "2026-02-28" "2026-03-01" "2026-03-02"
-                "2026-03-03" "2026-03-04" "2026-03-05" "2026-03-06"
-            ]
+            time: $dates
             weather_code: [0 2 45 63 73 95 99 1]
             temperature_2m_max: [-5.0 10.0 15.0 20.0 25.0 30.0 35.0 40.0]
             temperature_2m_min: [-15.0 0.0 5.0 10.0 15.0 20.0 25.0 30.0]
-            sunrise: [
-                "2026-02-27T07:10" "2026-02-28T07:09" "2026-03-01T07:08" "2026-03-02T07:07"
-                "2026-03-03T07:06" "2026-03-04T07:05" "2026-03-05T07:04" "2026-03-06T07:03"
-            ]
-            sunset: [
-                "2026-02-27T18:35" "2026-02-28T18:36" "2026-03-01T18:36" "2026-03-02T18:37"
-                "2026-03-03T18:38" "2026-03-04T18:39" "2026-03-05T18:40" "2026-03-06T18:41"
-            ]
+            sunrise: $sunrises
+            sunset: $sunsets
             precipitation_sum: [0.0 0.0 2.0 25.0 10.0 50.0 80.0 0.0]
             precipitation_probability_max: [0 10 30 90 100 100 100 5]
             wind_speed_10m_max: [5.0 15.0 10.0 40.0 60.0 80.0 120.0 20.0]
@@ -910,60 +931,76 @@ export def main [
         print ""
     }
 
-    let cached: record = if $test {
-        test-data
-    } else if $demo {
-        demo-data
-    } else if $use_cache {
+    let cached: record = if $use_cache {
         if $debug { print $"(ansi green)✓ Using cached data(ansi reset)\n" }
         open $cache_path
     } else {
         if ($cache_path | path exists) { rm $cache_path }
-        try {
-            let geo: record = if ($city | is-empty) {
-                if $debug { print "Auto-detecting location via IP (ipapi.co)..." }
-                detect-location
-            } else {
-                if $debug { print $"Geocoding '($city)' via Open-Meteo..." }
-                geocode-city $city $lang
-            }
 
-            if $debug {
-                print $"(ansi green)✓ Location: ($geo.name), ($geo.country_name)(ansi reset)"
-                print $"  Coordinates: ($geo.latitude), ($geo.longitude)"
-            }
-
-            let weather: record = if $air {
-                if $debug { print "Fetching air quality from Open-Meteo..." }
-                fetch-air-quality $geo.latitude $geo.longitude
-            } else {
-                if $debug { print "Fetching forecast from Open-Meteo..." }
-                let w: record = (fetch-open-meteo $geo.latitude $geo.longitude)
-
-                if $debug { print "Fetching AQI from Open-Meteo..." }
-                let a: record = try {
-                    fetch-air-quality $geo.latitude $geo.longitude
-                } catch {
-                    if $debug { print "(ansi yellow)AQI fetch failed, skipping...(ansi reset)" }
-                    { current: {} }
+        let geo: record = if $test {
+            test-location
+        } else if $demo {
+            demo-location
+        } else {
+            try {
+                if ($city | is-empty) {
+                    if $debug { print "Auto-detecting location via IP (ipapi.co)..." }
+                    detect-location
+                } else {
+                    if $debug { print $"Geocoding '($city)' via Open-Meteo..." }
+                    geocode-city $city $lang
                 }
-
-                let merged_cur: record = (($w.current? | default {}) | merge ($a.current? | default {}))
-                $w | update current $merged_cur
-            }
-
-            if $debug { print $"(ansi green)✓ Data received(ansi reset)\n" }
-
-            let combined: record = ($weather | insert location $geo)
-            $combined | save -f $cache_path
-            $combined
-        } catch {|err|
-            let location_clause: string = if ($city | is-empty) { "" } else { $" for '($city)'" }
-            error make {
-                msg: $"Could not fetch weather($location_clause)"
-                help: $err.msg
+            } catch {|err|
+                error make { msg: "Could not resolve location", help: $err.msg }
             }
         }
+
+        if $debug and not ($test or $demo) {
+            print $"(ansi green)✓ Location: ($geo.name), ($geo.country_name)(ansi reset)"
+            print $"  Coordinates: ($geo.latitude), ($geo.longitude)"
+        }
+
+        let weather: record = if $test {
+            test-data
+        } else if $demo {
+            demo-data
+        } else {
+            try {
+                if $air {
+                    if $debug { print "Fetching air quality from Open-Meteo..." }
+                    fetch-air-quality $geo.latitude $geo.longitude
+                } else {
+                    if $debug { print "Fetching forecast from Open-Meteo..." }
+                    let w: record = (fetch-open-meteo $geo.latitude $geo.longitude)
+
+                    if $debug { print "Fetching AQI from Open-Meteo..." }
+                    let a: record = try {
+                        fetch-air-quality $geo.latitude $geo.longitude
+                    } catch {
+                        if $debug { print "(ansi yellow)AQI fetch failed, skipping...(ansi reset)" }
+                        { current: {} }
+                    }
+
+                    let merged_cur: record = (($w.current? | default {}) | merge ($a.current? | default {}))
+                    $w | update current $merged_cur
+                }
+            } catch {|err|
+                let location_clause: string = if ($city | is-empty) { "" } else { $" for '($city)'" }
+                error make {
+                    msg: $"Could not fetch weather($location_clause)"
+                    help: $err.msg
+                }
+            }
+        }
+
+        if $debug and not ($test or $demo) { print $"(ansi green)✓ Data received(ansi reset)\n" }
+
+        let combined: record = ($weather | insert location $geo)
+
+        if not ($test or $demo) {
+            $combined | save -f $cache_path
+        }
+        $combined
     }
 
     if $json { return $cached }
