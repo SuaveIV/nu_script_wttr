@@ -712,7 +712,7 @@ def build-oneline-display [
     let tc: float = ($data.current?.temperature_2m? | default 0.0)
     let temp_val: string = (to-display-temp $tc $units)
     let icon: string = if $icon_mode == 'text' { '' } else { $"(wmo-icon $code $is_day $icon_mode) " }
-    let temp_display: string = (format-temp $temp_val $units --text=($icon_mode == 'text'))
+    let temp_display: string = (format-temp $temp_val $units --text)
     $"($loc_str): ($icon)($temp_display) - (wmo-desc $code)"
 }
 
