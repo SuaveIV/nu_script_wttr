@@ -1018,9 +1018,9 @@ export def main [
         print ($data | table -i false)
     } else {
         # Current weather
-        let output: record = (build-current $cached $loc $units $icon_mode --raw=$raw)
-
-        if $raw { return $output }
+        if $raw {
+            return (build-current $cached $loc $units $icon_mode --raw)
+        }
 
         let term_width: int = (term size).columns
         let tier: string = if $oneline { "oneline"
@@ -1033,6 +1033,7 @@ export def main [
         if $tier == "oneline" {
             print (build-oneline-display $cached $loc_str $units $icon_mode)
         } else {
+            let output: record = (build-current $cached $loc $units $icon_mode)
             print (match $tier {
                 "full"    => $output,
                 "compact" => ($output | reject Pressure Visibility Clouds),
