@@ -463,7 +463,11 @@ def build-current [
 
         let aqi_val: int = if $units.is_imperial { $us_aqi } else { $eu_aqi }
         let aqi_label: string = if $units.is_imperial { "AQI (US)" } else { "AQI (EU)" }
-        let aqi_display: string = (format-aqi $aqi_val --text=($icon_mode == 'text'))
+        let aqi_display: string = if ($us_aqi == 0 and $eu_aqi == 0) {
+            if $icon_mode == 'text' { "N/A" } else { "N/A" }
+        } else {
+            (format-aqi $aqi_val --text=($icon_mode == 'text'))
+        }
         let icon_aqi: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '🍃 ' } else { "\u{f06c} " }
 
         let is_severe: bool = ($code in [95 96 99])
@@ -904,15 +908,15 @@ export def main [
     --imperial (-i)              # Force imperial units (°F, mph).
     --forecast (-3)              # Show 3-day forecast.
     --oneline (-1)               # Show a single-line summary (e.g. for status bars).
-    --compact (-C)               # Compact output (drops Pressure, Visibility, Clouds).
-    --minimal (-M)               # Minimal output (also drops UV, Humidity, Feels).
+    --compact (-C)               # Compact output (drops Pressure, Visibility, Clouds). Only applies to current weather view.
+    --minimal (-M)               # Minimal output (also drops UV, Humidity, Feels). Only applies to current weather view.
     --json (-j)                  # Return the full raw API response as data.
     --emoji (-E)                 # Use emoji icons instead of Nerd Font glyphs.
     --text (-T)                  # Plain text output — no icons, no colours.
     --force (-f)                 # Bypass cache and force a fresh network request.
     --hourly (-H)                # Show hourly forecast for today (3-hour intervals).
     --clear-cache                # Delete all cached data and exit.
-    --lang: string = ""          # Language code for geocoding place names (e.g. 'fr', 'de').
+    --lang: string = ""          # Language code for geocoding place names (e.g. 'fr', 'de'). Only affects geocoding; forecast descriptions are always in English.
     --air (-Q)                   # Show air quality data (PM2.5, PM10, Ozone, NO2, AQI).
     --test                       # Use a minimal mock payload to test defensive parsing and edge cases.
     --demo                       # Use a varied mock payload to demonstrate color thresholds and states.

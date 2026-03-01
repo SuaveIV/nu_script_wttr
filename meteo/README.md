@@ -1,10 +1,10 @@
 # nu_script_meteo
 
-A fast weather script for [Nushell](https://www.nushell.sh/). It pulls data from [Open-Meteo](https://open-meteo.com) — no API keys or accounts needed. It's built to be faster than `wttr.in`.
+A fast weather script for [Nushell](https://www.nushell.sh/) that pulls data from [Open-Meteo](https://open-meteo.com) — no API keys or accounts needed. It's built to be faster than `wttr.in`.
 
 If you use `weather.nu`, this is a good companion for when you just want current conditions or a quick forecast without waiting. Open-Meteo doesn't provide moon or astronomy data, but the script handles current conditions (including gusts), hourly breakdowns, and 3-day forecasts with UV index, air quality, and snowfall.
 
-Responses stay in the cache for 15 minutes. Units switch between metric and imperial based on your country, but you can force either with a flag.
+Responses stay in the cache for 15 minutes. Units switch between metric and imperial based on your country, but you can force either with a flag. When air quality data isn't available, the script honestly shows "N/A" instead of misleading zeros.
 
 ## Installation
 
@@ -65,6 +65,11 @@ meteo -r                   # Return a raw record (for scripts)
 meteo -j                   # Full API response
 meteo -f                   # Skip cache and fetch fresh data
 
+# Display options
+meteo -C                   # Compact output (drops Pressure, Visibility, Clouds) - current weather only
+meteo -M                   # Minimal output (also drops UV, Humidity, Feels) - current weather only
+meteo --lang fr            # Language for geocoding place names (e.g., 'fr', 'de') - forecast descriptions always in English
+
 # Management
 meteo --clear-cache        # Wipe the cache
 meteo --debug "London"     # Show diagnostic info
@@ -77,6 +82,11 @@ The flags mostly match `weather.nu`, with a few exceptions:
 - **No moon data:** Open-Meteo doesn't include moon phases in the free tier. Sunrise and sunset are still shown.
 - **No `~` or `@` syntax:** Use city names. Open-Meteo's geocoder won't resolve landmarks or domains.
 - **Extra data:** Includes UV index (color-coded), AQI, and snowfall in the forecast views.
+- **Language support:** The `--lang` flag only affects how place names are displayed in geocoding results. All weather descriptions remain in English since they come from a local lookup table.
+
+## Compact and minimal views
+
+The `-C` (compact) and `-M` (minimal) flags only work with the current weather view. They don't affect hourly or forecast displays, which have their own fixed layouts.
 
 ## Piping
 
