@@ -304,7 +304,7 @@ def http-get-with-retry [
         }
 
         if $attempt >= $max_retries {
-            error make { msg: $error_record.msg }
+            error make --unspanned { msg: $error_record.msg }
         }
         $attempt = $attempt + 1
         sleep (($attempt * 200) * 1ms)
@@ -590,7 +590,7 @@ export def main [
                 print '  4. wttr.in service temporarily down'
                 print ""
                 print 'Try: curl wttr.in (in regular terminal to test)'
-                error make {
+                error make --unspanned {
                     msg: "Connectivity test failed"
                     help: "Check your internet connection or firewall settings"
                 }
@@ -666,12 +666,12 @@ export def main [
             let error_msg = $err.msg
 
             if ($error_msg | str contains '404') or ($error_msg | str contains 'Not Found') {
-                error make {
+                error make --unspanned {
                     msg: $"Location not found: '($display_city)'"
                     help: "Try an airport code (e.g. JFK) or a landmark with ~ (e.g. ~Eiffel Tower)"
                 }
             } else {
-                error make {
+                error make --unspanned {
                     msg: $"Could not fetch weather for '($display_city)'"
                     help: $error_msg
                 }
@@ -700,7 +700,7 @@ export def main [
             print ""
         }
 
-        error make {
+        error make --unspanned {
             msg: $"No weather data found for '($display_city)'"
             help: "The location may not be recognized by wttr.in"
         }

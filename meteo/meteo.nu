@@ -287,7 +287,7 @@ def http-get-with-retry [
             sleep (($attempt * 200) * 1ms)
         }
     }
-    error make {
+    error make --unspanned {
         msg: $"Failed to fetch ($url) after ($max_retries) attempts"
         help: ($last_err | get msg? | default "unknown error")
     }
@@ -301,7 +301,7 @@ def geocode-city [city: string, lang: string]: nothing -> record {
     let url: string = $"https://geocoding-api.open-meteo.com/v1/search?name=($city | url encode)&count=1&language=($lang_param)&format=json"
     let response: any = (http-get-with-retry $url)
     if ($response.results? | is-empty) {
-        error make {
+        error make --unspanned {
             msg: $"Location not found: '($city)'"
             help: "Try a different spelling or a nearby major city."
         }
@@ -993,7 +993,7 @@ export def main [
                     geocode-city $city $lang
                 }
             } catch {|err|
-                error make { msg: "Could not resolve location", help: $err.msg }
+                error make --unspanned { msg: "Could not resolve location", help: $err.msg }
             }
         }
 
@@ -1028,7 +1028,7 @@ export def main [
                 }
             } catch {|err|
                 let location_clause: string = if ($city | is-empty) { "" } else { $" for '($city)'" }
-                error make {
+                error make --unspanned {
                     msg: $"Could not fetch weather($location_clause)"
                     help: $err.msg
                 }
