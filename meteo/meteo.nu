@@ -921,6 +921,12 @@ export def main [
     --test                       # Use a minimal mock payload to test defensive parsing and edge cases.
     --demo                       # Use a varied mock payload to demonstrate color thresholds and states.
 ]: nothing -> any {
+    # Resolve city from argument, environment variable, or default to empty string
+    let city: string = if ($city | is-empty) {
+        $env.METEO_CITY? | default ""
+    } else {
+        $city
+    }
     let start_time: datetime = (date now)
     let icon_mode: string = if $emoji {
         'emoji'

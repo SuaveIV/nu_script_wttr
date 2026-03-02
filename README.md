@@ -58,7 +58,15 @@ use scripts/weather.nu
 
 ## Tips
 
-**Change the default city** — edit the `city` parameter default in `weather.nu`:
+**Set a default city** — add this to your `env.nu`:
+
+```nushell
+$env.WTTR_CITY = "New York"
+```
+
+This persists across sessions and takes priority over IP auto-detection, but can still be overridden per-call with an explicit argument.
+
+**Change the default city in the script** — edit the `city` parameter default in `weather.nu`:
 
 ```nushell
 city: string = ""       # Change to your city, e.g. "New York"
@@ -72,7 +80,7 @@ weather -3 -r -t | to toon                        # compact format for LLM input
 weather -r -t | to json | clipboard copy          # copy to clipboard as JSON
 ```
 
-> TOON support via [fdncred/nu_plugin_toon](https://github.com/fdncred/nu_plugin_toon)  
+> TOON support via [fdncred/nu_plugin_toon](https://github.com/fdncred/nu_plugin_toon)
 > Clipboard support via [fmotalleb/nu_plugin_clipboard](https://github.com/fmotalleb/nu_plugin_clipboard)
 
 ## Usage

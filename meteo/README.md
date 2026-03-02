@@ -20,6 +20,22 @@ use scripts/meteo.nu
 
 Nerd Font icons are off by default. To enable them, set `$env.NERD_FONTS = "1"` in your config. You can also use `-E` for emojis or `-T` for plain text.
 
+## Tips
+
+**Set a default city** — add this to your `env.nu`:
+
+```nushell
+$env.METEO_CITY = "Tokyo"
+```
+
+This persists across sessions and takes priority over IP auto-detection, but can still be overridden per-call with an explicit argument.
+
+**Change the default city in the script** — edit the `city` parameter default in `meteo.nu`:
+
+```nushell
+city: string = ""       # Change to your city, e.g. "Tokyo"
+```
+
 ## Screenshots
 
 ### Normal

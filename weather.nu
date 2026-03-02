@@ -508,6 +508,12 @@ export def main [
     --clear-cache                   # Clear all cached weather data and exit.
     --lang: string = ""             # Specify language code (e.g. 'fr', 'de', 'es', 'zh'). Empty = auto.
 ]: nothing -> any {
+    # Resolve city from argument, environment variable, or default to empty string
+    let city: string = if ($city | is-empty) {
+        $env.WTTR_CITY? | default ""
+    } else {
+        $city
+    }
     # Resolve icon mode based on flags and environment
     let icon_mode: string = if $emoji {
         'emoji'
