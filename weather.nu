@@ -300,7 +300,7 @@ def http-get-with-retry [
     mut attempt = 0
     loop {
         let error_record = try {
-            return (http get $url -m $timeout)
+            return (http get $url --max-time $timeout)
         } catch {|e|
             $e
         }
@@ -308,7 +308,7 @@ def http-get-with-retry [
         if $attempt >= $max_retries {
             error make --unspanned { msg: $error_record.msg }
         }
-        $attempt = $attempt + 1
+        $attempt += 1
         sleep (($attempt * 200) * 1ms)
     }
 }
@@ -328,7 +328,7 @@ def build-astro-display [astro: record, loc: string, mode: string, --raw]: nothi
 
     if $raw { $astro } else {
         print $"(ansi cyan_bold)Astronomy for ($loc)(ansi reset)"
-        $output | table -i false
+        $output | table --index false
     }
 }
 
@@ -336,7 +336,7 @@ def build-astro-display [astro: record, loc: string, mode: string, --raw]: nothi
 def build-hourly-display [today: record, units: record, loc: string, mode: string, --raw, --debug]: nothing -> any {
     if $debug { print $"(ansi cyan)ℹ Processing Hourly Forecast...(ansi reset)" }
     let hourly_table = ($today.hourly | compact | each {|hour|
-        let t_str = ($hour.time | fill -a r -w 4 -c '0')
+        let t_str = ($hour.time | fill --alignment r --width 4 --character '0')
         let is_us = ($units.temp_label == '°F')
         let temp = if $is_us { $hour.tempF } else { $hour.tempC }
         let desc = ($hour.weatherDesc?.0?.value? | default 'Unknown')
@@ -352,7 +352,7 @@ def build-hourly-display [today: record, units: record, loc: string, mode: strin
 
     if $raw { $hourly_table } else {
         print $"(ansi cyan_bold)Hourly Forecast for ($loc)(ansi reset)"
-        $hourly_table | table -i false
+        $hourly_table | table --index false
     }
 }
 
@@ -372,7 +372,7 @@ def build-forecast-display [weather: list<any>, units: record, loc: string, mode
 
     if $raw { $forecast_table } else {
         print $"(ansi cyan_bold)3-Day Forecast for ($loc)(ansi reset)"
-        $forecast_table | table -i false
+        $forecast_table | table --index false
     }
 }
 
@@ -541,7 +541,7 @@ export def main [
     resolve-cache-dir 'nu_weather_cache' | let cache_dir: string
 
     if $clear_cache {
-        try { rm -rf $cache_dir }
+        try { rm --recursive --force $cache_dir }
         print 'Weather cache cleared.'
         return
     }
@@ -574,7 +574,7 @@ export def main [
             # Test basic connectivity first
             print 'Testing basic connectivity...'
             let connectivity_test = try {
-                http get 'https://wttr.in' -m 5sec
+                http get 'https://wttr.in' --max-time 5sec
                 print $"(ansi green)✓ wttr.in is reachable(ansi reset)"
                 true
             } catch {|err|
@@ -633,7 +633,7 @@ export def main [
                 print $"(ansi grey)Sending request...(ansi reset)"
             }
             let res = (http-get-with-retry $url)
-            $res | save -f $cache_path
+            $res | save --force $cache_path
             $res
         } catch {|err|
             if $debug {
@@ -787,8 +787,8 @@ export def main [
     $weather_data.astronomy | first | let astro: record
 
     # Dynamic extraction using the units schema
-    $current | get -o $units.temp_key | default '0' | let temp_val: string
-    $current | get -o $units.feels_key | default '0' | let feels_val: string
+    $current | get --optional $units.temp_key | default '0' | let temp_val: string
+    $current | get --optional $units.feels_key | default '0' | let feels_val: string
 
     # Calculate Beaufort
     $current.windspeedKmph? | default '0' | let wind_k: string
@@ -805,14 +805,14 @@ export def main [
     let icon_uv: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☀ ' } else { " " }
 
     # Wind, precipitation, visibility, pressure
-    $current | get -o $units.speed_key | default '0' | let wind_speed: string
+    $current | get --optional $units.speed_key | default '0' | let wind_speed: string
     $current.winddir16Point? | default 'N' | let wind_dir_str: string
     wind-dir-icon $wind_dir_str $icon_mode | let wind_dir: string
 
     $"($icon_wind)($wind_speed)($units.speed_label) ($wind_dir)" | let wind: string
-    $"($icon_rain)(($current | get -o $units.precip_key | default '0.0'))($units.precip_label)" | let precip: string
-    $"($icon_vis)(($current | get -o $units.vis_key | default '0'))($units.vis_label)" | let vis: string
-    $"($icon_press)(($current | get -o $units.press_key | default '0'))($units.press_label)" | let pressure: string
+    $"($icon_rain)(($current | get --optional $units.precip_key | default '0.0'))($units.precip_label)" | let precip: string
+    $"($icon_vis)(($current | get --optional $units.vis_key | default '0'))($units.vis_label)" | let vis: string
+    $"($icon_press)(($current | get --optional $units.press_key | default '0'))($units.press_label)" | let pressure: string
 
     # UV Index & Sky Styling
     $current.uvIndex? | default '0' | into int | let uv: int
@@ -974,5 +974,5 @@ export def main [
         _ => $output
     }
 
-    $final_output | table -i false
+    $final_output | table --index false
 }

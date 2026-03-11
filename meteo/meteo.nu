@@ -143,7 +143,7 @@ const WMO_DESCRIPTIONS = {
 
 # Maps a WMO weather interpretation code to a human-readable description.
 def wmo-desc [code: int]: nothing -> string {
-    $WMO_DESCRIPTIONS | get -o ($code | into string) | default "Unknown"
+    $WMO_DESCRIPTIONS | get --optional ($code | into string) | default "Unknown"
 }
 
 # Returns a weather icon for a WMO code. Supports nerd/emoji/text modes.
@@ -941,7 +941,7 @@ export def main [
     let cache_dir: string = (resolve-cache-dir 'nu_meteo_cache')
 
     if $clear_cache {
-        try {rm -rf $cache_dir}
+        try {rm --recursive --force $cache_dir}
         print 'Meteo cache cleared.'
         return
     }
@@ -1040,7 +1040,7 @@ export def main [
         let combined: record = ($weather | insert location $geo)
 
         if not ($test or $demo) {
-            $combined | try {save -f $cache_path}
+            $combined | try {save --force $cache_path}
         }
         $combined
     }
@@ -1071,30 +1071,30 @@ export def main [
         print (build-oneline-display $cached $loc_str $units $icon_mode)
         print ""
         print $"(ansi cyan_bold)--- Testing: Air Quality ---(ansi reset)"
-        print (build-air-quality $cached $loc $is_imperial $icon_mode --raw=$raw | table -i false)
+        print (build-air-quality $cached $loc $is_imperial $icon_mode --raw=$raw | table --index false)
         print $"(ansi cyan_bold)--- Testing: Hourly ---(ansi reset)"
-        print (build-hourly $cached $units $icon_mode --raw=$raw | table -i false)
+        print (build-hourly $cached $units $icon_mode --raw=$raw | table --index false)
         print $"(ansi cyan_bold)--- Testing: Forecast ---(ansi reset)"
-        print (build-forecast $cached $units $icon_mode --raw=$raw | table -i false)
+        print (build-forecast $cached $units $icon_mode --raw=$raw | table --index false)
         print $"(ansi cyan_bold)--- Testing: Current [Full] ---(ansi reset)"
-        print (build-current $cached $loc $units $icon_mode --raw=$raw | table -i false)
+        print (build-current $cached $loc $units $icon_mode --raw=$raw | table --index false)
         return
     }
 
     if $air {
         let out: record = (build-air-quality $cached $loc $is_imperial $icon_mode --raw=$raw)
         if $raw { return $out }
-        print ($out | table -i false)
+        print ($out | table --index false)
     } else if $hourly {
         let data: list<any> = (build-hourly $cached $units $icon_mode --raw=$raw)
         if $raw { return $data }
         print $"(ansi cyan_bold)Hourly Forecast for ($loc_str)(ansi reset)"
-        print ($data | table -i false)
+        print ($data | table --index false)
     } else if $forecast {
         let data: list<any> = (build-forecast $cached $units $icon_mode --raw=$raw)
         if $raw { return $data }
         print $"(ansi cyan_bold)3-Day Forecast for ($loc_str)(ansi reset)"
-        print ($data | table -i false)
+        print ($data | table --index false)
     } else {
         # Current weather
         if $raw {
@@ -1118,7 +1118,7 @@ export def main [
                 "compact" => ($output | reject Pressure Visibility Clouds),
                 "minimal" => ($output | reject Pressure Visibility Clouds UV Humidity Feels AQI),
                 _         => $output
-            } | table -i false)
+            } | table --index false)
         }
     }
 
