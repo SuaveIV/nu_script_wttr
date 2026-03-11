@@ -199,7 +199,7 @@ def wmo-icon [
 def degrees-to-compass [degrees: number]: nothing -> string {
     let dirs: list<string> = ["N" "NNE" "NE" "ENE" "E" "ESE" "SE" "SSE" "S" "SSW" "SW" "WSW" "W" "WNW" "NW" "NNW"]
     let idx: int = ((($degrees + 11.25) / 22.5) | math floor | into int) mod 16
-    $dirs | get $idx
+    $dirs | get --optional $idx
 }
 
 # Converts a wind speed in km/h to its Beaufort scale number (0–12).
@@ -255,17 +255,17 @@ def wind-dir-icon [dir: string, icon_mode: string]: nothing -> string {
 }
 
 # Resolves (and creates if needed) the weather cache directory.
-def resolve-cache-dir [subdir: string]: nothing -> string {
+def resolve-cache-dir [subdir: path]: nothing -> string {
     let base: string = $nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp')
     let cache_dir: string = $base | path join $subdir
-    if not ($cache_dir | path exists) { mkdir $cache_dir }
+    if not ($cache_dir | path exists) { try {mkdir $cache_dir}  }
     $cache_dir
 }
 
 # Returns true if a cache file exists and was modified within the given TTL.
-def is-cache-valid [cache_path: string, ttl: duration]: nothing -> bool {
+def is-cache-valid [cache_path: path, ttl: duration]: nothing -> bool {
     if ($cache_path | path exists) {
-        ((date now) - (ls $cache_path | get modified | first)) < $ttl
+        ((date now) - (try {ls $cache_path} | get modified | first)) < $ttl
     } else { false }
 }
 
@@ -533,13 +533,13 @@ def build-hourly [
         let t: string = $item.item
         let i: int = $item.index
 
-        let temp_celsius: float = try { $hourly.temperature_2m         | get $i | default 0.0 } catch { 0.0 }
-        let code: int     = try { $hourly.weather_code            | get $i | into int } catch { 0 }
-        let wind_kmh: float = try { $hourly.wind_speed_10m          | get $i | default 0.0 } catch { 0.0 }
-        let wind_deg: float = try { $hourly.wind_direction_10m      | get $i | default 0.0 } catch { 0.0 }
-        let gust_kmh: float = try { $hourly.wind_gusts_10m          | get $i | default 0.0 } catch { 0.0 }
-        let precip_probability: int = try { $hourly.precipitation_probability | get $i | into int } catch { 0 }
-        let humidity: int = try { $hourly.relative_humidity_2m    | get $i | into int } catch { 0 }
+        let temp_celsius: float = try { $hourly.temperature_2m         | get --optional $i | default 0.0 } catch { 0.0 }
+        let code: int     = try { $hourly.weather_code            | get --optional $i | into int } catch { 0 }
+        let wind_kmh: float = try { $hourly.wind_speed_10m          | get --optional $i | default 0.0 } catch { 0.0 }
+        let wind_deg: float = try { $hourly.wind_direction_10m      | get --optional $i | default 0.0 } catch { 0.0 }
+        let gust_kmh: float = try { $hourly.wind_gusts_10m          | get --optional $i | default 0.0 } catch { 0.0 }
+        let precip_probability: int = try { $hourly.precipitation_probability | get --optional $i | into int } catch { 0 }
+        let humidity: int = try { $hourly.relative_humidity_2m    | get --optional $i | into int } catch { 0 }
 
         let wind_dir: string = (degrees-to-compass $wind_deg)
 
@@ -597,17 +597,17 @@ def build-forecast [
     let rows: list<record> = ($times | enumerate | each {|item|
         let t: string = $item.item
         let i: int = $item.index
-        let code: int      = try { $daily.weather_code                    | get $i | into int } catch { 0 }
-        let temp_max_celsius: float = try { $daily.temperature_2m_max              | get $i | default 0.0 } catch { 0.0 }
-        let temp_min_celsius: float = try { $daily.temperature_2m_min              | get $i | default 0.0 } catch { 0.0 }
-        let precip_mm: float = try { $daily.precipitation_sum               | get $i | default 0.0 } catch { 0.0 }
-        let snow_mm: float   = try { $daily.snowfall_sum                    | get $i | default 0.0 } catch { 0.0 }
-        let precip_probability: int = try { $daily.precipitation_probability_max   | get $i | into int } catch { 0 }
-        let wind_kmh: float  = try { $daily.wind_speed_10m_max              | get $i | default 0.0 } catch { 0.0 }
-        let wind_deg: float  = try { $daily.wind_direction_10m_dominant     | get $i | default 0.0 } catch { 0.0 }
-        let uv_max: int    = try { $daily.uv_index_max                    | get $i | math round | into int } catch { 0 }
-        let sunrise_raw: any = try { $daily.sunrise                         | get $i } catch { "" }
-        let sunset_raw: any = try { $daily.sunset                          | get $i } catch { "" }
+        let code: int      = try { $daily.weather_code                    | get --optional $i | into int } catch { 0 }
+        let temp_max_celsius: float = try { $daily.temperature_2m_max              | get --optional $i | default 0.0 } catch { 0.0 }
+        let temp_min_celsius: float = try { $daily.temperature_2m_min              | get --optional $i | default 0.0 } catch { 0.0 }
+        let precip_mm: float = try { $daily.precipitation_sum               | get --optional $i | default 0.0 } catch { 0.0 }
+        let snow_mm: float   = try { $daily.snowfall_sum                    | get --optional $i | default 0.0 } catch { 0.0 }
+        let precip_probability: int = try { $daily.precipitation_probability_max   | get --optional $i | into int } catch { 0 }
+        let wind_kmh: float  = try { $daily.wind_speed_10m_max              | get --optional $i | default 0.0 } catch { 0.0 }
+        let wind_deg: float  = try { $daily.wind_direction_10m_dominant     | get --optional $i | default 0.0 } catch { 0.0 }
+        let uv_max: int    = try { $daily.uv_index_max                    | get --optional $i | math round | into int } catch { 0 }
+        let sunrise_raw: any = try { $daily.sunrise                         | get --optional $i } catch { "" }
+        let sunset_raw: any = try { $daily.sunset                          | get --optional $i } catch { "" }
 
         let wind_dir: string = (degrees-to-compass $wind_deg)
         let sunrise: string = try { $sunrise_raw | into datetime | format date '%H:%M' } catch { $sunrise_raw }
@@ -941,7 +941,7 @@ export def main [
     let cache_dir: string = (resolve-cache-dir 'nu_meteo_cache')
 
     if $clear_cache {
-        rm -rf $cache_dir
+        try {rm -rf $cache_dir}
         print 'Meteo cache cleared.'
         return
     }
@@ -975,9 +975,9 @@ export def main [
 
     let cached: record = if $use_cache {
         if $debug { print $"(ansi green)✓ Using cached data(ansi reset)\n" }
-        open $cache_path
+        try {open $cache_path}
     } else {
-        if ($cache_path | path exists) { rm $cache_path }
+        if ($cache_path | path exists) { try { rm $cache_path } }
 
         let geo: record = if $test {
             test-location
@@ -1040,7 +1040,7 @@ export def main [
         let combined: record = ($weather | insert location $geo)
 
         if not ($test or $demo) {
-            $combined | save -f $cache_path
+            $combined | try {save -f $cache_path}
         }
         $combined
     }
@@ -1129,7 +1129,7 @@ export def main [
         } else {
             let fetch_duration: duration = ((date now) - $start_time)
             if $use_cache {
-                let cache_age: duration = ((date now) - (ls $cache_path | get modified | first))
+                let cache_age: duration = ((date now) - (try {ls $cache_path | get modified | first}))
                 print $"(ansi light_gray)Loaded from cache [($cache_age) old](ansi reset)"
             } else {
                 print $"(ansi light_gray)Fetched in ($fetch_duration)(ansi reset)"
