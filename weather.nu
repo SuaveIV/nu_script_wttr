@@ -270,22 +270,24 @@ def wind-dir-icon [
 
 # Resolves and creates the cache directory.
 def resolve-cache-dir [
-    subdir: string # Subdirectory name for the cache
-]: nothing -> string {
+    subdir: path # Subdirectory name for the cache
+]: nothing -> path {
     $nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp') | let base_dir: string
     $base_dir | path join $subdir | let cache_dir: string
-    if not ($cache_dir | path exists) { mkdir $cache_dir }
+    if not ($cache_dir | path exists) { try { mkdir $cache_dir } }
     $cache_dir
 }
 
 # Checks if a cache file is valid based on its modification time and TTL.
 def is-cache-valid [
-    cache_path: string # Path to the cache file
+    cache_path: path # Path to the cache file
     ttl: duration      # Time-to-live for the cache
 ]: nothing -> bool {
     if ($cache_path | path exists) {
-        let modified = (ls $cache_path | get modified | first)
-        ((date now) - $modified) < $ttl
+        try {
+            let modified = (ls $cache_path | get modified | first)
+            ((date now) - $modified) < $ttl
+        } catch { false }
     } else { false }
 }
 
@@ -337,13 +339,13 @@ def build-hourly-display [today: record, units: record, loc: string, mode: strin
         let t_str = ($hour.time | fill -a r -w 4 -c '0')
         let is_us = ($units.temp_label == '°F')
         let temp = if $is_us { $hour.tempF } else { $hour.tempC }
-        let desc = ($hour.weatherDesc | first | get value)
+        let desc = ($hour.weatherDesc?.0?.value? | default 'Unknown')
 
         {
             Time: $"($t_str | str substring 0..1):($t_str | str substring 2..3)",
             Condition: (if $mode == 'text' { $desc } else { $"((weather-icon $hour.weatherCode $mode)) ($desc)" }),
             Temp: (format-temp $temp $units --text=($mode == 'text')),
-            Wind: $"((wind-dir-icon $hour.winddir16Point $mode)) ($hour | get $units.speed_key)($units.speed_label)",
+            Wind: $"((wind-dir-icon $hour.winddir16Point $mode)) ($hour | get --optional $units.speed_key | default '0')($units.speed_label)",
             Humidity: $"($hour.humidity)%"
         }
     })
@@ -361,10 +363,10 @@ def build-forecast-display [weather: list<any>, units: record, loc: string, mode
         let desc = ($noon.weatherDesc | first | get value)
         {
             Date: ($day.date | into datetime | format date '%a, %b %d'),
-            High: (format-temp ($day | get $units.forecast_max_key) $units --text=($mode == 'text')),
-            Low: (format-temp ($day | get $units.forecast_min_key) $units --text=($mode == 'text')),
+            High: (format-temp ($day | get --optional $units.forecast_max_key | default '0') $units --text=($mode == 'text')),
+            Low: (format-temp ($day | get --optional $units.forecast_min_key | default '0') $units --text=($mode == 'text')),
             Condition: (if $mode == 'text' { $desc } else { $"((weather-icon $noon.weatherCode $mode)) ($desc)" }),
-            Rain: $"($noon | get $units.precip_key)($units.precip_label)"
+            Rain: $"($noon | get --optional $units.precip_key | default '0')($units.precip_label)"
         }
     })
 
@@ -539,7 +541,7 @@ export def main [
     resolve-cache-dir 'nu_weather_cache' | let cache_dir: string
 
     if $clear_cache {
-        rm -rf $cache_dir
+        try { rm -rf $cache_dir }
         print 'Weather cache cleared.'
         return
     }
@@ -619,11 +621,11 @@ export def main [
         test-data $use_imperial
     } else if $is_cache_valid {
         if $debug { print $"(ansi green)✓ Using cached data(ansi reset)" }
-        open $cache_path
+        try {open $cache_path}
     } else {
         # Clear old cache if it exists before fetching new data
         if ($cache_path | path exists) {
-            rm $cache_path
+            try { rm $cache_path }
         }
 
         try {
