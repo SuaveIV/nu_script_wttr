@@ -301,7 +301,7 @@ def http-get-with-retry [
     loop {
         let error_record = try {
             return (http get $url --max-time $timeout)
-         } catch { |e|
+         } catch {|e|
             $e
          }
 
@@ -335,7 +335,7 @@ def build-astro-display [astro: record, loc: string, mode: string, --raw]: nothi
 # Builds the hourly forecast display data.
 def build-hourly-display [today: record, units: record, loc: string, mode: string, --raw, --debug]: nothing -> any {
     if $debug {  print $"(ansi cyan)ℹ Processing Hourly Forecast...(ansi reset)"  }
-    let hourly_table = ($today.hourly | compact | each { |hour|
+    let hourly_table = ($today.hourly | compact | each {|hour|
         let t_str = ($hour.time | fill --alignment r --width 4 --character '0')
         let is_us = ($units.temp_label == '°F')
         let temp = if $is_us {  $hour.tempF  } else {  $hour.tempC  }
@@ -358,7 +358,7 @@ def build-hourly-display [today: record, units: record, loc: string, mode: strin
 
 # Builds the 3-day forecast display data.
 def build-forecast-display [weather: list<any>, units: record, loc: string, mode: string, --raw]: nothing -> any {
-    let forecast_table = ($weather | compact | each { |day|
+    let forecast_table = ($weather | compact | each {|day|
         let noon = ($day.hourly | where time == '1200' | append ($day.hourly | first) | first)
         let desc = ($noon.weatherDesc | first | get value)
         {
@@ -416,7 +416,7 @@ def test-data [use_imperial: bool]: nothing -> record {
                 tempC: '25', tempF: '77', FeelsLikeC: '26', FeelsLikeF: '79',
                 chanceofrain: '0', chanceofsnow: '0', humidity: '40'
              }]
-         },
+         }
         {
             astronomy: [{
                 sunrise: '06:31 AM',
@@ -436,7 +436,7 @@ def test-data [use_imperial: bool]: nothing -> record {
                 tempC: '0', tempF: '32', FeelsLikeC: '-5', FeelsLikeF: '23',
                 chanceofrain: '0', chanceofsnow: '90', humidity: '85'
              }]
-         },
+         }
         {
             astronomy: [{
                 sunrise: '06:32 AM',
@@ -577,7 +577,7 @@ export def main [
                 http get 'https://wttr.in' --max-time 5sec
                 print $"(ansi green)✓ wttr.in is reachable(ansi reset)"
                 true
-             } catch { |err|
+             } catch {|err|
                 print $"(ansi red)✗ Cannot reach wttr.in(ansi reset)"
                 print $"  Error: ($err.msg)"
                 false
@@ -635,7 +635,7 @@ export def main [
             let res = (http-get-with-retry $url)
             $res | save --force $cache_path
             $res
-         } catch { |err|
+         } catch {|err|
             if $debug {
                 print ""
                 print $"(ansi red_bold)━━━ REQUEST FAILED ━━━(ansi reset)"
@@ -697,7 +697,7 @@ export def main [
             print $"  Has current_condition: (($data.current_condition? | is-empty))"
             print ""
             print 'Available fields in response:'
-            $data | columns | each { |col| print $"  - ($col)"  }
+            $data | columns | each {|col| print $"  - ($col)"  }
             print $"(ansi red_bold)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
             print ""
          }

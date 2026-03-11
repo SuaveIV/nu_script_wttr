@@ -1040,7 +1040,7 @@ export def main [
         let combined: record = ($weather | insert location $geo)
 
         if not ($test or $demo) {
-            $combined | try {save --force $cache_path}
+            $combined | try { save --force $cache_path }
         }
         $combined
     }
