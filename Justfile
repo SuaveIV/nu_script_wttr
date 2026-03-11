@@ -4,25 +4,19 @@
 default:
     @just --list
 
-# Format all .nu files with nufmt
-fmt:
-    nufmt weather.nu
-    nufmt meteo/meteo.nu
-
-# Lint all .nu files with nulint
+# Lint all .nu files with nu-lint (replaces fmt for this project)
 lint:
     nu-lint --fix weather.nu
     nu-lint --fix meteo/meteo.nu
 
-# Format and lint (fix what can be fixed, report the rest)
-fix: fmt lint
+# Run linting with auto-fixes enabled
+fix: lint
 
-# Run lint and format check without modifying files
+# Run lint check without modifying files
 check:
-    -nufmt --dry-run weather.nu
-    -nufmt --dry-run meteo/meteo.nu
-    -nu-lint -f compact weather.nu
-    -nu-lint -f compact meteo/meteo.nu
+    -nu-lint --format compact weather.nu
+    -nu-lint --format compact meteo/meteo.nu
+
 # Run built-in test mode for both scripts
 test:
     nu -c "use weather.nu; weather --test"
