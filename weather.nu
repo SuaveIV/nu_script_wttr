@@ -497,13 +497,13 @@ export def main [
     --imperial (-i)                 # Force imperial units (°F, mph) regardless of location.
     --forecast (-3)                 # Show weather forecast for the next 3 days.
     --oneline (-1)                  # Show a single line summary (e.g. for status bars).
-    --compact (-c)                  # Force compact output (drops Pressure, Visibility, Clouds, Updated).
+    --compact (-C)                  # Force compact output (drops Pressure, Visibility, Clouds, Updated).
     --minimal (-M)                  # Force minimal output (also drops UV, Humidity, Feels).
     --json (-j)                     # Return the full raw API response as data.
-    --emoji (-e)                    # Use Emojis instead of Nerd Font icons (Default is Nerd Fonts).
-    --text (-t)                     # Plain text output (no icons, no colors).
+    --emoji (-E)                    # Use Emojis instead of Nerd Font icons (Default is Nerd Fonts).
+    --text (-T)                     # Plain text output (no icons, no colors).
     --force (-f)                    # Bypass cache and force a network request.
-    --astro (-a)                    # Show detailed astronomy data (Sunrise, Sunset, Moon phase, etc).
+    --astro (-A)                    # Show detailed astronomy data (Sunrise, Sunset, Moon phase, etc).
     --hourly (-H)                   # Show hourly forecast for today (3-hour intervals).
     --clear-cache                   # Clear all cached weather data and exit.
     --lang: string = ""             # Specify language code (e.g. 'fr', 'de', 'es', 'zh'). Empty = auto.

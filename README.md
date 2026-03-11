@@ -46,7 +46,7 @@ Has a one-line mode for status bars, raw output for piping to other commands, an
 
 ## Installation
 
-> Nerd Font icons are enabled by default. Install a [Nerd Font](https://www.nerdfonts.com) and set it as your terminal font, or use `-e` for emojis or `-t` for plain text instead.
+> Nerd Font icons are enabled by default. Install a [Nerd Font](https://www.nerdfonts.com) and set it as your terminal font, or use `-E` for emojis or `-T` for plain text instead.
 
 1. Download `weather.nu`
 2. Put it in your Nushell scripts directory (`~/.config/nushell/scripts/` on Linux/Mac, `%APPDATA%\nushell\scripts\` on Windows)
@@ -75,9 +75,9 @@ city: string = ""       # Change to your city, e.g. "New York"
 **Pipe to other tools** — use `--raw` and `--text` together to strip formatting for clean serialization:
 
 ```nushell
-weather -3 -r -t | to json
-weather -3 -r -t | to toon                        # compact format for LLM input
-weather -r -t | to json | clipboard copy          # copy to clipboard as JSON
+weather -3 -r -T | to json
+weather -3 -r -T | to toon                        # compact format for LLM input
+weather -r -T | to json | clipboard copy          # copy to clipboard as JSON
 ```
 
 > TOON support via [fdncred/nu_plugin_toon](https://github.com/fdncred/nu_plugin_toon)
@@ -97,14 +97,14 @@ weather "@github.com"      # Domain location
 # Display modes
 weather -3, --forecast     # 3-day forecast
 weather -H, --hourly       # Hourly breakdown (3-hour intervals)
-weather -a, --astro        # Sunrise, sunset, moon phase
+weather -A, --astro        # Sunrise, sunset, moon phase
 weather -1, --oneline      # One-line summary (for status bars)
 
 # Unit and display options
 weather -m, --metric       # Force metric units (°C, km/h)
 weather -i, --imperial     # Force imperial units (°F, mph)
-weather -e, --emoji        # Use emojis instead of Nerd Fonts
-weather -t, --text         # Plain text, no icons or colors
+weather -E, --emoji        # Use emojis instead of Nerd Fonts
+weather -T, --text         # Plain text, no icons or colors
 weather --lang fr          # Weather in French (or de, es, zh, etc.)
 
 # Data output
