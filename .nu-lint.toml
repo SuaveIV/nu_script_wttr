@@ -1,67 +1,77 @@
-# .nu-lint.toml — nu-lint configuration for the wttr.in / open-meteo weather scripts
+# .nu-lint.toml — Optimized for display-heavy weather scripts (Nushell 0.111+)
 # Rule levels: "off" | "hint" | "warning" | "error"
 
 # --- Top-level options ---
 
-# Increased to 100 to match nufmt and prevent wrapping wttr URLs or ASCII.
+# Increased to 100 to allow wttr URLs and ASCII strings to breathe.
 max_pipeline_length = 100
 
 # Parse errors in external commands (e.g. http, rm) should not block linting.
 skip_external_parse_errors = true
 
-# Prefer ?-syntax throughout (e.g. $rec.field?) rather than get --optional.
+# Prefer modern ?-syntax throughout (e.g. $rec.field?) for 0.111 compatibility.
 explicit_optional_access = false
 
 
 [rules]
 
-# ── Disabled outright ─────────────────────────────────────────────────────────
+# ── CRITICAL: Disabled to prevent breaking weather display ──────────────────
 
-# weather-domain functions are intentionally long.
-max_function_body_length = "off"
-
-# Builder helpers use positional params by design.
-max_positional_params = "off"
-
-# CRITICAL: Prevents collapsing multi-line print statements into one string.
-# Required to keep ASCII icons line-by-line.
+# This is the "Icon Killer." Set to off so your line-by-line ASCII remains intact.
 merge_multiline_print = "off"
 
-# CRITICAL: Prevents stripping quotes from '°F', 'emoji', and 'text'.
-# Ensures special characters and units are handled safely.
+# Prevents stripping quotes from '°F', 'emoji', and 'text'.
+# Required for terminal character safety and encoding.
 string_may_be_bare = "off"
 
-# Stops the linter from flagging spaces in records like { a: 1 }.
+# Stops the linter from enforcing {a:1} instead of { a: 1 }.
+# Crucial for maintaining readability in dense API data records.
 record_brace_spacing = "off"
 
-# Stops the massive wall of hints about using =~ instead of 'str contains'.
+# While =~ is faster, 'str contains' is often more readable in weather logic.
+# Turning this off clears the 30+ "hint" wall from your logs.
 contains_to_regex_op = "off"
+
+
+# ── Project Specific: Disabled for weather-domain logic ──────────────────────
+
+# Custom weather functions are intentionally long; splitting adds noise.
+max_function_body_length = "off"
+
+# Builder helpers require 3-4 params by design.
+max_positional_params = "off"
+
+# Display functions often print and return mixed shapes; types are too dynamic.
+missing_output_type = "off"
+print_and_return_data = "off"
 
 
 # ── Downgraded: warning → hint ────────────────────────────────────────────────
 
+# Downgraded because cache paths are constructed internally and safe.
 string_param_as_path = "hint"
-missing_output_type = "hint"
+
+# A missing cache file is a non-fatal event; fresh fetch is the fallback.
 catch_builtin_error_try = "hint"
-print_and_return_data = "hint"
+
+# These are stylistic and should not block CI or standard checks.
 assign_then_return = "hint"
 each_nothing_to_for_loop = "hint"
 
 
-# ── Kept at warning (default) — genuine correctness risks ────────────────────
+# ── Kept at warning: Genuine Correctness Risks ───────────────────────────────
 
-# These identify where your script might crash on missing JSON keys.
-# You should keep these active to ensure script stability.
+# ESSENTIAL for 0.111+. Identifies where the script will crash on null/missing
+# keys from wttr.in or open-meteo. Use the ? operator to fix these.
 unsafe_dynamic_record_access = "warning"
 
 
-# ── Auto-fixable hygiene hints ────────────────────────────────────────────────
-# These remain as hints for safe, non-destructive cleanup.
+# ── Auto-fixable Hygiene: 0.111+ Modernization ───────────────────────────────
 
-explicit_long_flags           = "hint"  # `-f` → `--force`
+explicit_long_flags           = "hint"  # `-f` → `--force`, `-m` → `--max-time`
 not_is_empty_to_is_not_empty  = "hint"  # `not (… | is-empty)` → `is-not-empty`
 compound_assignment           = "hint"  # `$x = $x + 1` → `$x += 1`
-never_space_split             = "hint"  # `$"($var)"` → `$var`
+never_space_split             = "hint"  # `$"($var)"` → `$var` where safe
 closure_pipe_body_spacing     = "hint"  # `{|x| body }` spacing
 omit_list_commas              = "hint"  # `[a, b]` → `[a b]`
 add_label_to_error            = "hint"  # add `label` field to error make
