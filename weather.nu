@@ -697,7 +697,7 @@ export def main [
             print $"  Has current_condition: (($data.current_condition? | is-empty))"
             print ""
             print 'Available fields in response:'
-            $data | columns | each {|col| print $"  - ($col)"  }
+            $data | columns | each {|col| print $"  - ($col)"  } # nu-lint-ignore: each_nothing_to_for_loop
             print $"(ansi red_bold)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
             print ""
          }

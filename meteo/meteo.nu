@@ -105,7 +105,7 @@ def format-aqi [val: int, --text]: nothing -> string {
         } else {
             '0x800080' # Purple
         }
-        $"($val)" | ansi gradient --fgstart $color --fgend $color
+        $"($val)" | ansi gradient --fgstart $color --fgend $color # nu-lint-ignore: never_space_split
     }
 }
 
