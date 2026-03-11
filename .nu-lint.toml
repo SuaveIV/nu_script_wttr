@@ -74,7 +74,7 @@ compound_assignment           = "hint"  # `$x = $x + 1` → `$x += 1`
 never_space_split             = "hint"  # `$"($var)"` → `$var` where safe
 closure_pipe_body_spacing     = "hint"  # `{|x| body }` spacing
 omit_list_commas              = "hint"  # `[a, b]` → `[a b]`
-add_label_to_error            = "hint"  # add `label` field to error make
-reflow_wide_lists             = "hint"  # long inline lists → multiline
-wrap_wide_records             = "hint"  # long inline records → multiline
+add_label_to_error            = "off"  # error make uses --unspanned throughout; label field is contradictory here.
+reflow_wide_lists             = "off"  # Test/demo fixture data is intentionally dense; reflowing adds noise.
+wrap_wide_records             = "off"  # Test/demo fixture data is intentionally dense; reflowing adds noise.
 where_closure_drop_parameter  = "hint"  # `where {|x| …}` → `where {…}`
