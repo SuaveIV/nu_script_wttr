@@ -55,7 +55,7 @@ string_param_as_path = "hint"
 catch_builtin_error_try = "hint"
 
 # These are stylistic and should not block CI or standard checks.
-assign_then_return = "hint"
+assign_then_return            = "off"   # misfires on complex multi-line closures
 each_nothing_to_for_loop = "hint"
 
 
@@ -71,10 +71,10 @@ unsafe_dynamic_record_access = "warning"
 explicit_long_flags           = "hint"  # `-f` → `--force`, `-m` → `--max-time`
 not_is_empty_to_is_not_empty  = "hint"  # `not (… | is-empty)` → `is-not-empty`
 compound_assignment           = "hint"  # `$x = $x + 1` → `$x += 1`
-never_space_split             = "hint"  # `$"($var)"` → `$var` where safe
+never_space_split             = "off"   # breaks implicit int→string in ansi pipeline
 closure_pipe_body_spacing     = "hint"  # `{|x| body }` spacing
 omit_list_commas              = "hint"  # `[a, b]` → `[a b]`
 add_label_to_error            = "off"  # error make uses --unspanned throughout; label field is contradictory here.
 reflow_wide_lists             = "off"  # Test/demo fixture data is intentionally dense; reflowing adds noise.
 wrap_wide_records             = "off"  # Test/demo fixture data is intentionally dense; reflowing adds noise.
-where_closure_drop_parameter  = "hint"  # `where {|x| …}` → `where {…}`
+where_closure_drop_parameter  = "off"   # companion failure to assign_then_return
