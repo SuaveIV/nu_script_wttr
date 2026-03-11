@@ -36,9 +36,9 @@ const COL_ONELINE_WIDTH = 0
 #   - Mild (between)       → green-to-yellow gradient
 #
 # Examples:
-#   > format-temp "72" {temp_label: "°F", hot_limit: 80, cold_limit: 40}
+#   > format-temp "72" { temp_label: "°F", hot_limit: 80, cold_limit: 40 }
 #   72°F
-#   > format-temp "95" {temp_label: "°F", hot_limit: 80, cold_limit: 40} --text
+#   > format-temp "95" { temp_label: "°F", hot_limit: 80, cold_limit: 40 } --text
 #   95°F
 def format-temp [
     val: string           # Raw temperature value from API
@@ -52,17 +52,17 @@ def format-temp [
     let temp_int = ($val | into int)
     if $text {
         $"($val)($units.temp_label)"
-    } else {
+     } else {
         let gradient = if $temp_int >= $units.hot_limit {
-            { s: '0xffff00', e: '0xff0000' } # Yellow -> Red
-        } else if $temp_int <= $units.cold_limit {
-            { s: '0xffffff', e: '0x00ffff' } # White -> Cyan
-        } else {
-            { s: '0x00ff00', e: '0xffff00' } # Green -> Yellow
-        }
+            {  s: '0xffff00', e: '0xff0000'  } # Yellow -> Red
+         } else if $temp_int <= $units.cold_limit {
+            {  s: '0xffffff', e: '0x00ffff'  } # White -> Cyan
+         } else {
+            {  s: '0x00ff00', e: '0xffff00'  } # Green -> Yellow
+         }
         $"($val)($units.temp_label)" | ansi gradient --fgstart $gradient.s --fgend $gradient.e
-    }
-}
+     }
+ }
 
 # Returns a weather condition icon for the given WorldWeatherOnline weather code.
 #
@@ -77,7 +77,7 @@ def weather-icon [
     code: string          # WorldWeatherOnline weather code
     icon_mode: string     # Icon mode: "emoji", "nerd", or "text"
 ]: nothing -> string {
-    if $icon_mode == 'text' { return "" }
+    if $icon_mode == 'text' {  return ""  }
     if $icon_mode == 'emoji' {
         match $code {
             '113' => "☀️",
@@ -102,8 +102,8 @@ def weather-icon [
             '389' => "⛈️",
             '392' | '395' => "⛈️",
             _ => "🌡️"
-        }
-    } else {
+         }
+     } else {
         match $code {
             '113' => "", # nf-weather-day_sunny
             '116' => "", # nf-weather-day_cloudy
@@ -119,9 +119,9 @@ def weather-icon [
             '200' => "", # nf-weather-lightning
             '386' | '389' | '392' | '395' => "", # nf-weather-thunderstorm
             _ => "" # nf-weather-thermometer (Fallback)
-        }
-    }
-}
+         }
+     }
+ }
 
 # Returns a moon-phase icon that best matches the given phase name and illumination.
 #
@@ -138,7 +138,7 @@ def moon-icon [
     illum: string         # Moon illumination percentage as API string
     icon_mode: string     # Icon mode: "emoji", "nerd", or "text"
 ]: nothing -> string {
-    if $icon_mode == 'text' { return "" }
+    if $icon_mode == 'text' {  return ""  }
     let illum_int = ($illum | into int)
     let phase_lower = ($phase | str downcase)
 
@@ -149,16 +149,16 @@ def moon-icon [
             $x if $x < 55 => "🌓",
             $x if $x < 95 => "🌔",
             _ => "🌕"
-        }
-    } else {
+         }
+     } else {
         match $illum_int {
             $x if $x < 5 => "", # nf-weather-moon_new
             $x if $x < 45 => "", # nf-weather-moon_waxing_crescent_1
             $x if $x < 55 => "", # nf-weather-moon_first_quarter
             $x if $x < 95 => "", # nf-weather-moon_waxing_gibbous_1
             _ => "" # nf-weather-moon_full
-        }
-    }
+         }
+     }
 
     if $icon_mode == 'emoji' {
         match $phase_lower {
@@ -171,8 +171,8 @@ def moon-icon [
             $s if ($s | str contains 'last quarter') => "🌗",
             $s if ($s | str contains 'waning crescent') => "🌘",
             _ => $fallback
-        }
-    } else {
+         }
+     } else {
         match $phase_lower {
             $s if ($s | str contains 'new moon') => "",
             $s if ($s | str contains 'waxing crescent') => "",
@@ -183,9 +183,9 @@ def moon-icon [
             $s if ($s | str contains 'last quarter') => "",
             $s if ($s | str contains 'waning crescent') => "",
             _ => $fallback
-        }
-    }
-}
+         }
+     }
+ }
 
 # Converts a wind speed in km/h to its Beaufort scale number (0–12).
 #
@@ -214,8 +214,8 @@ def beaufort-scale [
         $x if $x <= 102 => 10,
         $x if $x <= 117 => 11,
         _ => 12
-    }
-}
+     }
+ }
 
 # Returns an icon or bracketed label representing the given Beaufort scale number.
 #
@@ -232,12 +232,12 @@ def beaufort-icon [
 ]: nothing -> string {
     if $icon_mode == 'emoji' or $icon_mode == 'text' {
         return $"[Bft ($scale)]"
-    }
+     }
     match $scale {
         0 => "", 1 => "", 2 => "", 3 => "", 4 => "", 5 => "",
         6 => "", 7 => "", 8 => "", 9 => "", 10 => "", 11 => "", _ => ""
-    }
-}
+     }
+ }
 
 # Returns a directional arrow icon for the given cardinal or intercardinal wind direction.
 #
@@ -254,7 +254,7 @@ def wind-dir-icon [
 ]: nothing -> string {
     if $icon_mode == 'emoji' or $icon_mode == 'text' {
         return $dir
-    }
+     }
     match ($dir | str upcase) {
         'N' => "", # nf-weather-wind_north
         'NNE' | 'NE' | 'ENE' => "", # nf-weather-wind_north_east
@@ -265,8 +265,8 @@ def wind-dir-icon [
         'W' => "", # nf-weather-wind_west
         'WNW' | 'NW' | 'NNW' => "", # nf-weather-wind_north_west
         _ => $dir
-    }
-}
+     }
+ }
 
 # Resolves and creates the cache directory.
 def resolve-cache-dir [
@@ -274,9 +274,9 @@ def resolve-cache-dir [
 ]: nothing -> path {
     $nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp') | let base_dir: string
     $base_dir | path join $subdir | let cache_dir: string
-    if not ($cache_dir | path exists) { try { mkdir $cache_dir } }
+    if not ($cache_dir | path exists) {  try {  mkdir $cache_dir  }  }
     $cache_dir
-}
+ }
 
 # Checks if a cache file is valid based on its modification time and TTL.
 def is-cache-valid [
@@ -287,9 +287,9 @@ def is-cache-valid [
         try {
             let modified = (ls $cache_path | get modified | first)
             ((date now) - $modified) < $ttl
-        } catch { false }
-    } else { false }
-}
+         } catch {  false  }
+     } else {  false  }
+ }
 
 # Performs an HTTP GET request with retry logic and backoff.
 def http-get-with-retry [
@@ -301,84 +301,84 @@ def http-get-with-retry [
     loop {
         let error_record = try {
             return (http get $url --max-time $timeout)
-        } catch {|e|
+         } catch { |e|
             $e
-        }
+         }
 
         if $attempt >= $max_retries {
-            error make --unspanned { msg: $error_record.msg }
-        }
+            error make --unspanned {  msg: $error_record.msg  }
+         }
         $attempt += 1
         sleep (($attempt * 200) * 1ms)
-    }
-}
+     }
+ }
 
 # Builds the astronomy display data.
 def build-astro-display [astro: record, loc: string, mode: string, --raw]: nothing -> any {
     let moon_icon = (moon-icon $astro.moon_phase $astro.moon_illumination $mode)
-    let s_icon = if $mode == 'emoji' { '🌅 ' } else if $mode == 'nerd' { " " } else { '' }
-    let t_icon = if $mode == 'emoji' { '🌇 ' } else if $mode == 'nerd' { " " } else { '' }
+    let s_icon = if $mode == 'emoji' {  '🌅 '  } else if $mode == 'nerd' {  " "  } else {  ''  }
+    let t_icon = if $mode == 'emoji' {  '🌇 '  } else if $mode == 'nerd' {  " "  } else {  ''  }
 
     let output = {
         "Sunrise": $"($s_icon)($astro.sunrise)",
         "Sunset": $"($t_icon)($astro.sunset)",
         "Moon Phase": $"($moon_icon) ($astro.moon_phase)",
         "Illumination": $"($astro.moon_illumination)%"
-    }
+     }
 
-    if $raw { $astro } else {
+    if $raw {  $astro  } else {
         print $"(ansi cyan_bold)Astronomy for ($loc)(ansi reset)"
         $output | table --index false
-    }
-}
+     }
+ }
 
 # Builds the hourly forecast display data.
 def build-hourly-display [today: record, units: record, loc: string, mode: string, --raw, --debug]: nothing -> any {
-    if $debug { print $"(ansi cyan)ℹ Processing Hourly Forecast...(ansi reset)" }
-    let hourly_table = ($today.hourly | compact | each {|hour|
+    if $debug {  print $"(ansi cyan)ℹ Processing Hourly Forecast...(ansi reset)"  }
+    let hourly_table = ($today.hourly | compact | each { |hour|
         let t_str = ($hour.time | fill --alignment r --width 4 --character '0')
         let is_us = ($units.temp_label == '°F')
-        let temp = if $is_us { $hour.tempF } else { $hour.tempC }
+        let temp = if $is_us {  $hour.tempF  } else {  $hour.tempC  }
         let desc = ($hour.weatherDesc?.0?.value? | default 'Unknown')
 
         {
             Time: $"($t_str | str substring 0..1):($t_str | str substring 2..3)",
-            Condition: (if $mode == 'text' { $desc } else { $"((weather-icon $hour.weatherCode $mode)) ($desc)" }),
+            Condition: (if $mode == 'text' {  $desc  } else {  $"((weather-icon $hour.weatherCode $mode)) ($desc)"  }),
             Temp: (format-temp $temp $units --text=($mode == 'text')),
             Wind: $"((wind-dir-icon $hour.winddir16Point $mode)) ($hour | get --optional $units.speed_key | default '0')($units.speed_label)",
             Humidity: $"($hour.humidity)%"
-        }
-    })
+         }
+     })
 
-    if $raw { $hourly_table } else {
+    if $raw {  $hourly_table  } else {
         print $"(ansi cyan_bold)Hourly Forecast for ($loc)(ansi reset)"
         $hourly_table | table --index false
-    }
-}
+     }
+ }
 
 # Builds the 3-day forecast display data.
 def build-forecast-display [weather: list<any>, units: record, loc: string, mode: string, --raw]: nothing -> any {
-    let forecast_table = ($weather | compact | each {|day|
+    let forecast_table = ($weather | compact | each { |day|
         let noon = ($day.hourly | where time == '1200' | append ($day.hourly | first) | first)
         let desc = ($noon.weatherDesc | first | get value)
         {
             Date: ($day.date | into datetime | format date '%a, %b %d'),
             High: (format-temp ($day | get --optional $units.forecast_max_key | default '0') $units --text=($mode == 'text')),
             Low: (format-temp ($day | get --optional $units.forecast_min_key | default '0') $units --text=($mode == 'text')),
-            Condition: (if $mode == 'text' { $desc } else { $"((weather-icon $noon.weatherCode $mode)) ($desc)" }),
+            Condition: (if $mode == 'text' {  $desc  } else {  $"((weather-icon $noon.weatherCode $mode)) ($desc)"  }),
             Rain: $"($noon | get --optional $units.precip_key | default '0')($units.precip_label)"
-        }
-    })
+         }
+     })
 
-    if $raw { $forecast_table } else {
+    if $raw {  $forecast_table  } else {
         print $"(ansi cyan_bold)3-Day Forecast for ($loc)(ansi reset)"
         $forecast_table | table --index false
-    }
-}
+     }
+ }
 
 # Returns dummy weather data for testing purposes.
 def test-data [use_imperial: bool]: nothing -> record {
-    let test_country = if $use_imperial { 'United States' } else { 'Testland' }
+    let test_country = if $use_imperial {  'United States'  } else {  'Testland'  }
 
     {
         current_condition: [{
@@ -390,13 +390,13 @@ def test-data [use_imperial: bool]: nothing -> record {
             pressureInches: '29.9', pressure: '1012',
             uvIndex: '6',
             weatherCode: '389', # Severe Thunderstorm code
-            weatherDesc: [{value: 'Thunderstorm (Test)'}],
+            weatherDesc: [{ value: 'Thunderstorm (Test)' }],
             localObsDateTime: '2023-10-27 12:00 PM',
             observation_time: '04:00 PM',
             cloudcover: '75',
             humidity: '80',
             winddir16Point: 'SE'
-        }],
+         }],
         weather: [{
             astronomy: [{
                 sunrise: '06:30 AM',
@@ -405,18 +405,18 @@ def test-data [use_imperial: bool]: nothing -> record {
                 moonset: '05:00 AM',
                 moon_illumination: '10',
                 moon_phase: 'Waxing Crescent'
-            }],
+             }],
             date: '2023-10-27',
             maxtempC: '25', maxtempF: '77',
             mintempC: '15', mintempF: '59',
             hourly: [{
-                weatherCode: '113', weatherDesc: [{value: 'Sunny'}], time: '1200',
+                weatherCode: '113', weatherDesc: [{ value: 'Sunny' }], time: '1200',
                 windspeedMiles: '5', windspeedKmph: '8', winddir16Point: 'NW',
                 precipInches: '0.0', precipMM: '0.0',
                 tempC: '25', tempF: '77', FeelsLikeC: '26', FeelsLikeF: '79',
                 chanceofrain: '0', chanceofsnow: '0', humidity: '40'
-            }]
-        },
+             }]
+         },
         {
             astronomy: [{
                 sunrise: '06:31 AM',
@@ -425,18 +425,18 @@ def test-data [use_imperial: bool]: nothing -> record {
                 moonset: '06:00 AM',
                 moon_illumination: '50',
                 moon_phase: 'First Quarter'
-            }],
+             }],
             date: '2023-10-28',
             maxtempC: '2', maxtempF: '35',
             mintempC: '-2', mintempF: '28',
             hourly: [{
-                weatherCode: '338', weatherDesc: [{value: 'Heavy Snow'}], time: '1200',
+                weatherCode: '338', weatherDesc: [{ value: 'Heavy Snow' }], time: '1200',
                 windspeedMiles: '20', windspeedKmph: '32', winddir16Point: 'N',
                 precipInches: '0.5', precipMM: '12.0',
                 tempC: '0', tempF: '32', FeelsLikeC: '-5', FeelsLikeF: '23',
                 chanceofrain: '0', chanceofsnow: '90', humidity: '85'
-            }]
-        },
+             }]
+         },
         {
             astronomy: [{
                 sunrise: '06:32 AM',
@@ -445,25 +445,25 @@ def test-data [use_imperial: bool]: nothing -> record {
                 moonset: '07:00 AM',
                 moon_illumination: '100',
                 moon_phase: 'Full Moon'
-            }],
+             }],
             date: '2023-10-29',
             maxtempC: '10', maxtempF: '50',
             mintempC: '5', mintempF: '41',
             hourly: [{
-                weatherCode: '248', weatherDesc: [{value: 'Fog'}], time: '1200',
+                weatherCode: '248', weatherDesc: [{ value: 'Fog' }], time: '1200',
                 windspeedMiles: '0', windspeedKmph: '0', winddir16Point: 'E',
                 precipInches: '0.0', precipMM: '0.0',
                 tempC: '10', tempF: '50', FeelsLikeC: '10', FeelsLikeF: '50',
                 chanceofrain: '10', chanceofsnow: '0', humidity: '95'
-            }]
-        }],
+             }]
+         }],
         nearest_area: [{
-            areaName: [{value: 'Test City'}],
-            region: [{value: 'Test Region'}],
-            country: [{value: $test_country}]
-        }]
-    }
-}
+            areaName: [{ value: 'Test City' }],
+            region: [{ value: 'Test Region' }],
+            country: [{ value: $test_country }]
+         }]
+     }
+ }
 
 # Fetches and displays weather information from wttr.in with rich formatting.
 #
@@ -513,47 +513,47 @@ export def main [
     # Resolve city from argument, environment variable, or default to empty string
     let city: string = if ($city | is-empty) {
         $env.WTTR_CITY? | default ""
-    } else {
+     } else {
         $city
-    }
+     }
     # Resolve icon mode based on flags and environment
     let icon_mode: string = if $emoji {
         'emoji'
-    } else if $text {
+     } else if $text {
         'text'
-    } else if ($env.NERD_FONTS? == '1') {
+     } else if ($env.NERD_FONTS? == '1') {
         'nerd'
-    } else {
+     } else {
         'text'
-    }
+     }
 
     # URL encode for API (handles all special chars including Unicode)
     $city | url encode | let url_encoded_city: string
 
     # Display name is just the original input
-    let display_city: string = if ($city | is-empty) { 'Auto-detect' } else { $city }
+    let display_city: string = if ($city | is-empty) {  'Auto-detect'  } else {  $city  }
 
     # Build the full URL
-    let language_param: string = if ($lang | is-empty) { '' } else { $"&lang=($lang)" }
+    let language_param: string = if ($lang | is-empty) {  ''  } else {  $"&lang=($lang)"  }
     $"https://wttr.in/($url_encoded_city)?format=j1($language_param)" | let url: string
 
     # Cache Configuration
     resolve-cache-dir 'nu_weather_cache' | let cache_dir: string
 
     if $clear_cache {
-        try { rm --recursive --force $cache_dir }
+        try {  rm --recursive --force $cache_dir  }
         print 'Weather cache cleared.'
         return
-    }
+     }
 
-    let language_suffix: string = if ($lang | is-empty) { '' } else { $"_($lang)" }
-    let cache_file: string = if ($url_encoded_city | is-empty) { $"auto($language_suffix).json" } else { $"($url_encoded_city)($language_suffix).json" }
+    let language_suffix: string = if ($lang | is-empty) {  ''  } else {  $"_($lang)"  }
+    let cache_file: string = if ($url_encoded_city | is-empty) {  $"auto($language_suffix).json"  } else {  $"($url_encoded_city)($language_suffix).json"  }
     $cache_dir | path join $cache_file | let cache_path: string
     let is_cache_valid: bool = if $force {
         false
-    } else {
+     } else {
         is-cache-valid $cache_path 15min
-    }
+     }
 
     if $debug {
         print $"(ansi cyan)🔍 DEBUG MODE ENABLED(ansi reset)"
@@ -564,10 +564,10 @@ export def main [
         print $"(ansi grey)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
         print $"Cache Path:     ($cache_path)"
         print $"Cache Valid:    ($is_cache_valid)"
-        print $"Language:       (if ($lang | is-empty) { 'Auto' } else { $lang })"
-        print $"Display Mode:   (if $icon_mode == 'text' { 'Text' } else if $icon_mode == 'emoji' { 'Emoji' } else { 'Nerd Font' })"
-        print $"Unit Override:  (if $metric { 'Metric' } else if $imperial { 'Imperial' } else { 'Auto' })"
-        print $"View Mode:      (if $hourly { 'Hourly' } else if $astro { 'Astronomy' } else if $forecast { 'Forecast' } else { 'Current' })"
+        print $"Language:       (if ($lang | is-empty) {  'Auto'  } else {  $lang  })"
+        print $"Display Mode:   (if $icon_mode == 'text' {  'Text'  } else if $icon_mode == 'emoji' {  'Emoji'  } else {  'Nerd Font'  })"
+        print $"Unit Override:  (if $metric {  'Metric'  } else if $imperial {  'Imperial'  } else {  'Auto'  })"
+        print $"View Mode:      (if $hourly {  'Hourly'  } else if $astro {  'Astronomy'  } else if $forecast {  'Forecast'  } else {  'Current'  })"
         print ""
 
         if not $test {
@@ -577,11 +577,11 @@ export def main [
                 http get 'https://wttr.in' --max-time 5sec
                 print $"(ansi green)✓ wttr.in is reachable(ansi reset)"
                 true
-            } catch {|err|
+             } catch { |err|
                 print $"(ansi red)✗ Cannot reach wttr.in(ansi reset)"
                 print $"  Error: ($err.msg)"
                 false
-            }
+             }
 
             if not $connectivity_test {
                 print ""
@@ -595,47 +595,47 @@ export def main [
                 error make --unspanned {
                     msg: "Connectivity test failed"
                     help: "Check your internet connection or firewall settings"
-                }
-            }
-        }
+                 }
+             }
+         }
 
         print ""
         print 'Attempting weather data fetch...'
-    }
+     }
 
     # Fetch weather data with proper error handling
     let response: record = if $test {
         if $debug {
             print $"(ansi yellow)⚠ USING DUMMY TEST DATA(ansi reset)"
             print 'Skipping network request...'
-        }
+         }
 
         # Toggle between Metric/Imperial based on input for testing
         let use_imperial = if $imperial {
             true
-        } else if $metric {
+         } else if $metric {
             false
-        } else {
+         } else {
             ($city | str downcase | str contains 'imperial') or ($city | str downcase | str contains 'united states') or ($city | str downcase | str contains 'carrollton')
-        }
+         }
         test-data $use_imperial
-    } else if $is_cache_valid {
-        if $debug { print $"(ansi green)✓ Using cached data(ansi reset)" }
-        try {open $cache_path}
-    } else {
+     } else if $is_cache_valid {
+        if $debug {  print $"(ansi green)✓ Using cached data(ansi reset)"  }
+        try { open $cache_path }
+     } else {
         # Clear old cache if it exists before fetching new data
         if ($cache_path | path exists) {
-            try { rm $cache_path }
-        }
+            try {  rm $cache_path  }
+         }
 
         try {
             if $debug {
                 print $"(ansi grey)Sending request...(ansi reset)"
-            }
+             }
             let res = (http-get-with-retry $url)
             $res | save --force $cache_path
             $res
-        } catch {|err|
+         } catch { |err|
             if $debug {
                 print ""
                 print $"(ansi red_bold)━━━ REQUEST FAILED ━━━(ansi reset)"
@@ -649,7 +649,7 @@ export def main [
                     print '  1. wttr.in returned HTML error page instead of JSON'
                     print '  2. Location not found (404)'
                     print '  3. Service is down or rate limiting'
-                }
+                 }
 
                 if ($err.msg | str contains 'timeout') or ($err.msg | str contains 'time') {
                     print ""
@@ -658,11 +658,11 @@ export def main [
                     print '  1. Slow network connection'
                     print '  2. wttr.in service is slow/overloaded'
                     print '  3. Connection being throttled'
-                }
+                 }
 
                 print $"(ansi red_bold)━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
                 print ""
-            }
+             }
 
             # Check if it's a 404 (location not found) vs actual network error
             let error_msg = $err.msg
@@ -671,21 +671,21 @@ export def main [
                 error make --unspanned {
                     msg: $"Location not found: '($display_city)'"
                     help: "Try an airport code (e.g. JFK) or a landmark with ~ (e.g. ~Eiffel Tower)"
-                }
-            } else {
+                 }
+             } else {
                 error make --unspanned {
                     msg: $"Could not fetch weather for '($display_city)'"
                     help: $error_msg
-                }
-            }
-        }
-    }
+                 }
+             }
+         }
+     }
 
     if $debug {
         print $"(ansi green)✓ Request successful(ansi reset)"
         print $"Response type: ($response | describe)"
         print ""
-    }
+     }
 
     let data: record = $response
 
@@ -694,30 +694,30 @@ export def main [
         if $debug {
             print $"(ansi red_bold)━━━ DATA VALIDATION FAILED ━━━(ansi reset)"
             print 'Response structure check:'
-            print $"  Has current_condition: (not ($data.current_condition? | is-empty))"
+            print $"  Has current_condition: (($data.current_condition? | is-empty))"
             print ""
             print 'Available fields in response:'
-            $data | columns | each {|col| print $"  - ($col)" }
+            $data | columns | each { |col| print $"  - ($col)"  }
             print $"(ansi red_bold)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
             print ""
-        }
+         }
 
         error make --unspanned {
             msg: $"No weather data found for '($display_city)'"
             help: "The location may not be recognized by wttr.in"
-        }
-    }
+         }
+     }
 
     if $debug {
         print $"(ansi green)✓ Data validation passed(ansi reset)"
         print 'Response contains valid weather data'
         print ""
-    }
+     }
 
     if $json {
-        if $debug { print $"(ansi cyan)ℹ Returning raw JSON data...(ansi reset)" }
+        if $debug {  print $"(ansi cyan)ℹ Returning raw JSON data...(ansi reset)"  }
         return $data
-    }
+     }
 
     # Common data extraction
     $data.nearest_area | first | let nearest: record
@@ -732,11 +732,11 @@ export def main [
     # Priority: Force Imperial > Force Metric > Country detection
     let is_us: bool = if $imperial {
         true
-    } else if $metric {
+     } else if $metric {
         false
-    } else {
+     } else {
         ($country | str contains 'united states')
-    }
+     }
 
     # Define unit-specific configuration (Nushell Idiom: Data over Control Flow)
     # This eliminates repetitive if/else checks during data extraction
@@ -747,39 +747,39 @@ export def main [
             speed_key: 'windspeedMiles', precip_key: 'precipInches', vis_key: 'visibilityMiles', press_key: 'pressureInches',
             forecast_max_key: 'maxtempF', forecast_min_key: 'mintempF',
             hot_limit: 80, cold_limit: 40
-        }
-    } else {
+         }
+     } else {
         {
             temp_label: '°C', speed_label: 'km/h', precip_label: 'mm', vis_label: 'km', press_label: 'hPa',
             temp_key: 'temp_C', feels_key: 'FeelsLikeC',
             speed_key: 'windspeedKmph', precip_key: 'precipMM', vis_key: 'visibility', press_key: 'pressure',
             forecast_max_key: 'maxtempC', forecast_min_key: 'mintempC',
             hot_limit: 27, cold_limit: 4
-        }
-    }
+         }
+     }
 
     # Format location string (City, Region for US; City, Country for others)
-    let actual_location: string = if $is_us and not ($region | is-empty) {
+    let actual_location: string = if $is_us and ($region | is-empty) {
         $"($area_name), ($region)"
-    } else {
+     } else {
         $"($area_name), ($country_val)"
-    }
+     }
 
     # Astronomy View
     if $astro {
         let current_astro = ($data.weather | first | get astronomy | first)
         return (build-astro-display $current_astro $actual_location $icon_mode --raw=$raw)
-    }
+     }
 
     # Hourly View
     if $hourly {
         return (build-hourly-display ($data.weather | first) $units $actual_location $icon_mode --raw=$raw --debug=$debug)
-    }
+     }
 
     # Forecast View
     if $forecast {
         return (build-forecast-display $data.weather $units $actual_location $icon_mode --raw=$raw)
-    }
+     }
 
     # Safe data extraction for Current Weather
     $data.current_condition | first | let current: record
@@ -796,13 +796,13 @@ export def main [
     beaufort-icon $beaufort_scale $icon_mode | let beaufort_icon: string
 
     # Define icons for metrics
-    let icon_wind: string = if $icon_mode == 'text' { $"($beaufort_icon) " } else if $icon_mode == 'emoji' { $"💨 ($beaufort_icon) " } else { $"($beaufort_icon) " }
-    let icon_rain: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☔ ' } else { " " }
-    let icon_vis: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '👁 ' } else { " " }
-    let icon_press: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '⏲ ' } else { " " }
-    let icon_cloud: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☁ ' } else { " " }
-    let icon_humid: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '💧 ' } else { " " }
-    let icon_uv: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☀ ' } else { " " }
+    let icon_wind: string = if $icon_mode == 'text' {  $"($beaufort_icon) "  } else if $icon_mode == 'emoji' {  $"💨 ($beaufort_icon) "  } else {  $"($beaufort_icon) "  }
+    let icon_rain: string = if $icon_mode == 'text' {  ''  } else if $icon_mode == 'emoji' {  '☔ '  } else {  " "  }
+    let icon_vis: string = if $icon_mode == 'text' {  ''  } else if $icon_mode == 'emoji' {  '👁 '  } else {  " "  }
+    let icon_press: string = if $icon_mode == 'text' {  ''  } else if $icon_mode == 'emoji' {  '⏲ '  } else {  " "  }
+    let icon_cloud: string = if $icon_mode == 'text' {  ''  } else if $icon_mode == 'emoji' {  '☁ '  } else {  " "  }
+    let icon_humid: string = if $icon_mode == 'text' {  ''  } else if $icon_mode == 'emoji' {  '💧 '  } else {  " "  }
+    let icon_uv: string = if $icon_mode == 'text' {  ''  } else if $icon_mode == 'emoji' {  '☀ '  } else {  " "  }
 
     # Wind, precipitation, visibility, pressure
     $current | get --optional $units.speed_key | default '0' | let wind_speed: string
@@ -819,25 +819,25 @@ export def main [
 
     let uv_label: string = if $uv >= 11 {
         'Extreme'
-    } else if $uv >= 8 {
+     } else if $uv >= 8 {
         'Very High'
-    } else if $uv >= 6 {
+     } else if $uv >= 6 {
         'High'
-    } else if $uv >= 3 {
+     } else if $uv >= 3 {
         'Moderate'
-    } else {
+     } else {
         'Low'
-    }
+     }
 
     let uv_color: string = if $uv >= 8 {
         'red'
-    } else if $uv >= 6 {
+     } else if $uv >= 6 {
         'yellow'
-    } else if $uv >= 3 {
+     } else if $uv >= 3 {
         'green'
-    } else {
+     } else {
         'grey'
-    }
+     }
 
     # COMPREHENSIVE WEATHER EMOJI MAPPING
     # Based on WorldWeatherOnline weather codes
@@ -851,7 +851,7 @@ export def main [
         '182' | '317' | '320' | '362' | '365' => 'Sleet',
         '350' | '374' | '377' => 'Hail',
         _ => 'Rain'
-    }
+     }
     # SEVERE WEATHER DETECTION
     # wttr.in doesn't provide NWS alerts, but we can flag severe codes:
     # 227 (Blowing snow), 230 (Blizzard), 386/389/392/395 (Thunderstorms)
@@ -859,8 +859,8 @@ export def main [
     let is_severe: bool = ($weather_code in $severe_codes)
 
     let alert_icon: string = if $is_severe {
-        if $icon_mode == 'text' { ' [SEVERE]' } else if $icon_mode == 'emoji' { ' ⚠️' } else { ' ' } # nf-weather-storm_warning
-    } else { '' }
+        if $icon_mode == 'text' {  ' [SEVERE]'  } else if $icon_mode == 'emoji' {  ' ⚠️'  } else {  ' '  } # nf-weather-storm_warning
+     } else {  ''  }
 
     # Get weather description for additional context
     $current.weatherDesc?.0?.value? | default 'Unknown' | let weather_desc: string
@@ -872,39 +872,39 @@ export def main [
 
     moon-icon $moon_phase $moon_illum $icon_mode | let moon_icon: string
 
-    let moon_display: string = if $icon_mode == 'text' { 'Moon: ' } else { $"($moon_icon) " }
-    let sunrise_display: string = if $icon_mode == 'text' { 'Sunrise: ' } else if $icon_mode == 'emoji' { '🌅 ' } else { " " } # nf-weather-sunrise
-    let sunset_display: string = if $icon_mode == 'text' { 'Sunset: ' } else if $icon_mode == 'emoji' { '🌇 ' } else { " " } # nf-weather-sunset
+    let moon_display: string = if $icon_mode == 'text' {  'Moon: '  } else {  $"($moon_icon) "  }
+    let sunrise_display: string = if $icon_mode == 'text' {  'Sunrise: '  } else if $icon_mode == 'emoji' {  '🌅 '  } else {  " "  } # nf-weather-sunrise
+    let sunset_display: string = if $icon_mode == 'text' {  'Sunset: '  } else if $icon_mode == 'emoji' {  '🌇 '  } else {  " "  } # nf-weather-sunset
 
     # Format the update time safely
     let update_str: string = try {
         $current.localObsDateTime? | into datetime | format date '%Y-%m-%d %H:%M'
-    } catch {
+     } catch {
         'Unknown'
-    }
+     }
 
     # Format UTC time safely (for consistency)
     let utc_str: string = try {
         $current.observation_time? | into datetime | format date '%H:%M'
-    } catch {
+     } catch {
         'Unknown'
-    }
+     }
 
     # Prepare ANSI colors (empty if text mode)
-    let ansi_reset: string = if $icon_mode == 'text' { '' } else { (ansi reset) }
-    let ansi_grey: string = if $icon_mode == 'text' { '' } else { (ansi grey) }
-    let ansi_uv: string = if $icon_mode == 'text' { '' } else { (ansi $uv_color) }
+    let ansi_reset: string = if $icon_mode == 'text' {  ''  } else {  (ansi reset)  }
+    let ansi_grey: string = if $icon_mode == 'text' {  ''  } else {  (ansi grey)  }
+    let ansi_uv: string = if $icon_mode == 'text' {  ''  } else {  (ansi $uv_color)  }
 
     format-temp $temp_val $units --text=($icon_mode == 'text') | let temp_display: string
 
-    let condition_display: string = if $icon_mode == 'text' { $"($weather_desc)($alert_icon)" } else { $"($weather_icon) ($weather_desc)($alert_icon)" }
+    let condition_display: string = if $icon_mode == 'text' {  $"($weather_desc)($alert_icon)"  } else {  $"($weather_icon) ($weather_desc)($alert_icon)"  }
 
     let location_display: string = if ($icon_mode == 'text') or $raw {
         $actual_location
-    } else {
+     } else {
         $"https://wttr.in/($url_encoded_city)" | let link_url: string
         $link_url | ansi link --text $actual_location
-    }
+     }
 
     # Build output with weather description
     let output: record = {
@@ -921,58 +921,58 @@ export def main [
         UV: $"($icon_uv)($ansi_uv)($uv) ($uv_label)($ansi_reset)",
         Astronomy: $"($sunrise_display)(($astro.sunrise? | default 'N/A')) | ($sunset_display)(($astro.sunset? | default 'N/A')) | ($moon_display)(($astro.moon_illumination? | default '0'))%",
         Updated: $"($ansi_grey)($update_str) \(Local\) / ($utc_str) \(UTC\)($ansi_reset)"
-    }
+     }
 
     if $debug {
         print $"(ansi green)✓ All data extracted successfully(ansi reset)"
         print $"  Location: ($actual_location)"
         print $"  Country: ($country)"
-        print $"  Units: (if $is_us { 'US' } else { 'Metric' }) ($units.temp_label), ($units.speed_label)"
+        print $"  Units: (if $is_us {  'US'  } else {  'Metric'  }) ($units.temp_label), ($units.speed_label)"
         print $"  Weather code: ($weather_code) → ($weather_desc)"
         print $"  Temperature: ($temp_val)($units.temp_label) [feels: ($feels_val)($units.temp_label)]"
         print $"  UV Index: ($uv)"
         print $"  Moon phase: ($moon_phase) [($moon_illum)%]"
         print $"(ansi grey)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━(ansi reset)"
         print ""
-    }
+     }
 
     if $raw {
         return $output
-    }
+     }
 
     let term_width = (term size).columns
 
     let width_tier = if $term_width >= $COL_FULL_WIDTH {
         "full"
-    } else if $term_width >= $COL_COMPACT_WIDTH {
+     } else if $term_width >= $COL_COMPACT_WIDTH {
         "compact"
-    } else if $term_width >= $COL_MINIMAL_WIDTH {
+     } else if $term_width >= $COL_MINIMAL_WIDTH {
         "minimal"
-    } else {
+     } else {
         "oneline"
-    }
+     }
 
     let tier = if $oneline {
         "oneline"
-    } else if $minimal {
+     } else if $minimal {
         "minimal"
-    } else if $compact {
+     } else if $compact {
         "compact"
-    } else {
+     } else {
         $width_tier
-    }
+     }
 
     if $tier == "oneline" {
-        let oneline_emoji: string = if $icon_mode == 'text' { '' } else { $"($weather_icon) " }
+        let oneline_emoji: string = if $icon_mode == 'text' {  ''  } else {  $"($weather_icon) "  }
         return $"($actual_location): ($oneline_emoji)($temp_val)($units.temp_label) - ($weather_desc)"
-    }
+     }
 
     let final_output = match $tier {
         "full" => $output,
         "compact" => ($output | reject Pressure Visibility Clouds Updated),
         "minimal" => ($output | reject Pressure Visibility Clouds Updated UV Humidity Feels),
         _ => $output
-    }
+     }
 
     $final_output | table --index false
-}
+ }

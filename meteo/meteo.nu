@@ -258,14 +258,14 @@ def wind-dir-icon [dir: string, icon_mode: string]: nothing -> string {
 def resolve-cache-dir [subdir: path]: nothing -> string {
     let base: string = $nu.cache-dir? | default ($env.TEMP? | default $env.TMP? | default '/tmp')
     let cache_dir: string = $base | path join $subdir
-    if not ($cache_dir | path exists) { try {mkdir $cache_dir}  }
+    if not ($cache_dir | path exists) { try { mkdir $cache_dir }  }
     $cache_dir
 }
 
 # Returns true if a cache file exists and was modified within the given TTL.
 def is-cache-valid [cache_path: path, ttl: duration]: nothing -> bool {
     if ($cache_path | path exists) {
-        ((date now) - (try {ls $cache_path} | get modified | first)) < $ttl
+        ((date now) - (try { ls $cache_path } | get modified | first)) < $ttl
     } else { false }
 }
 
@@ -438,7 +438,7 @@ def build-current [
 
         let precip_val: string = if $units.is_imperial {
             $"($precip_mm * 0.0393701 | math round --precision 2)"
-        } else { $"($precip_mm)" }
+        } else { $precip_mm }
         let icon_rain: string = if $icon_mode == 'text' { '' } else if $icon_mode == 'emoji' { '☔ ' } else { "\u{e319} " }
         let precip: string = $"($icon_rain)($precip_val)($units.precip_label)"
 
@@ -592,7 +592,7 @@ def build-forecast [
 ]: nothing -> list<any> {
     let daily: record = ($data.daily? | default {time: []})
     let times: list<string> = ($daily.time? | default [])
-    let has_snow: bool = ($daily.snowfall_sum? | default [] | any {|x| $x > 0})
+    let has_snow: bool = ($daily.snowfall_sum? | default [] | any {|x| $x > 0 })
 
     let rows: list<record> = ($times | enumerate | each {|item|
         let t: string = $item.item
@@ -742,7 +742,7 @@ def format-loc [is_imperial: bool]: record -> string {
     let name: string = ($loc.name? | default "Unknown")
     let admin1: string = ($loc.admin1? | default "")
     let country: string = ($loc.country_name? | default "Unknown")
-    if $is_imperial and not ($admin1 | is-empty) {
+    if $is_imperial and ($admin1 | is-not-empty) {
         $"($name), ($admin1)"
     } else {
         $"($name), ($country)"
@@ -818,7 +818,7 @@ def demo-location []: nothing -> record {
 def demo-data []: nothing -> record {
     let now = (date now)
     let today_str = ($now | format date '%Y-%m-%d')
-    let dates = (0..7 | each {|i| $now + ($i * 1day) | format date '%Y-%m-%d'})
+    let dates = (0..7 | each {|i| $now + ($i * 1day) | format date '%Y-%m-%d' })
     let sunrises = ($dates | enumerate | each {|d|
         let min = 10 - $d.index
         let min_str = if $min < 10 { $"0($min)" } else { $min }
@@ -941,7 +941,7 @@ export def main [
     let cache_dir: string = (resolve-cache-dir 'nu_meteo_cache')
 
     if $clear_cache {
-        try {rm --recursive --force $cache_dir}
+        try { rm --recursive --force $cache_dir }
         print 'Meteo cache cleared.'
         return
     }
@@ -975,7 +975,7 @@ export def main [
 
     let cached: record = if $use_cache {
         if $debug { print $"(ansi green)✓ Using cached data(ansi reset)\n" }
-        try {open $cache_path}
+        try { open $cache_path }
     } else {
         if ($cache_path | path exists) { try { rm $cache_path } }
 
@@ -1129,7 +1129,7 @@ export def main [
         } else {
             let fetch_duration: duration = ((date now) - $start_time)
             if $use_cache {
-                let cache_age: duration = ((date now) - (try {ls $cache_path | get modified | first}))
+                let cache_age: duration = ((date now) - (try  { ls $cache_path | get modified | first }))
                 print $"(ansi light_gray)Loaded from cache [($cache_age) old](ansi reset)"
             } else {
                 print $"(ansi light_gray)Fetched in ($fetch_duration)(ansi reset)"
