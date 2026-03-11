@@ -6,24 +6,23 @@ default:
 
 # Format all .nu files with nufmt
 fmt:
-    nu -c "nufmt weather.nu"
-    nu -c "nufmt meteo/meteo.nu"
+    nufmt weather.nu
+    nufmt meteo/meteo.nu
 
 # Lint all .nu files with nulint
 lint:
-    nu -c "nulint weather.nu"
-    nu -c "nulint meteo/meteo.nu"
+    nu-lint --fix weather.nu
+    nu-lint --fix meteo/meteo.nu
 
 # Format and lint (fix what can be fixed, report the rest)
 fix: fmt lint
 
 # Run lint and format check without modifying files
 check:
-    -nu -c "nufmt --dry-run weather.nu"
-    -nu -c "nufmt --dry-run meteo/meteo.nu"
-    -nu -c "nulint weather.nu"
-    -nu -c "nulint meteo/meteo.nu"
-
+    -nufmt --dry-run weather.nu
+    -nufmt --dry-run meteo/meteo.nu
+    -nu-lint -f compact weather.nu
+    -nu-lint -f compact meteo/meteo.nu
 # Run built-in test mode for both scripts
 test:
     nu -c "use weather.nu; weather --test"
