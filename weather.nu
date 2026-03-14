@@ -345,10 +345,21 @@ def build-hourly-display [today: record, units: record, loc: string, mode: strin
         let temp = if $is_us {  $hour.tempF  } else {  $hour.tempC  }
         let desc = ($hour.weatherDesc?.0?.value? | default 'Unknown')
 
+        let chance_snow = ($hour.chanceofsnow? | default '0' | into int)
+        let precip_icon = if $mode == 'text' {
+            ''
+         } else if $chance_snow > 0 {
+            if $mode == 'emoji' { '❄️ ' } else { " " }
+         } else {
+            if $mode == 'emoji' { '☔ ' } else { " " }
+         }
+
         {
             Time: $"($t_str | str substring 0..1):($t_str | str substring 2..3)",
             Condition: (if $mode == 'text' {  $desc  } else {  $"((weather-icon $hour.weatherCode $mode)) ($desc)"  }),
             Temp: (format-temp $temp $units --text=($mode == 'text')),
+            Feels: (format-temp ($hour | get --optional $units.feels_key | default '0') $units --text=($mode == 'text')),
+            Precip: $"($precip_icon)($hour.chanceofrain? | default '0')%",
             Wind: $"((wind-dir-icon $hour.winddir16Point $mode)) ($hour | get --optional $units.speed_key | default '0')($units.speed_label)",
             Humidity: $"($hour.humidity)%"
          }
