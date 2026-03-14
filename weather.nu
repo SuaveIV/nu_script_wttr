@@ -759,7 +759,7 @@ export def main [
      }
 
     # Format location string (City, Region for US; City, Country for others)
-    let actual_location: string = if $is_us and ($region | is-empty) {
+    let actual_location: string = if $is_us and ($region | is-not-empty) {
         $"($area_name), ($region)"
      } else {
         $"($area_name), ($country_val)"
