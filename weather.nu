@@ -318,10 +318,14 @@ def build-astro-display [astro: record, loc: string, mode: string, --raw]: nothi
     let moon_icon = (moon-icon $astro.moon_phase $astro.moon_illumination $mode)
     let s_icon = if $mode == 'emoji' {  '🌅 '  } else if $mode == 'nerd' {  " "  } else {  ''  }
     let t_icon = if $mode == 'emoji' {  '🌇 '  } else if $mode == 'nerd' {  " "  } else {  ''  }
+    let mr_icon = if $mode == 'emoji' {  '🌙 '  } else if $mode == 'nerd' {  " "  } else {  ''  }
+    let ms_icon = if $mode == 'emoji' {  '🌒 '  } else if $mode == 'nerd' {  " "  } else {  ''  }
 
     let output = {
         "Sunrise": $"($s_icon)($astro.sunrise)",
         "Sunset": $"($t_icon)($astro.sunset)",
+        "Moonrise": $"($mr_icon)($astro.moonrise)",
+        "Moonset": $"($ms_icon)($astro.moonset)",
         "Moon Phase": $"($moon_icon) ($astro.moon_phase)",
         "Illumination": $"($astro.moon_illumination)%"
      }
